@@ -12,42 +12,24 @@
     <button class="primary" bindtap="start">{{cta}} ↗</button>
   </view>
   <view class="panel" wx:elif="{{panel===1}}">
-    <view class="title">一段旅程，<view>四种玩法。</view></view>
-    <button class="card chapter-card stage-button" bindtap="start">
+    <view class="title">一段旅程，<view>两个入口。</view></view>
+    <button class="card chapter-card stage-button" bindtap="culture">
       <view class="chapter-head">
         <text class="number">01</text>
-        <text class="section-title">技术之芯</text>
-        <text class="tag">{{shiftTag}}</text>
+        <text class="section-title">企业文化</text>
+        <text class="tag">{{cultureTag}}</text>
       </view>
-      <view class="muted">创新驱动、技术为本</view>
-      <view class="small muted">质量值班 · 六份材料盖章</view>
+      <view class="muted">文化介绍 · 打卡答题 · 三个互动关卡</view>
+      <view class="small muted">愿景使命 · 产品模块 · 价值观 · 走向世界</view>
     </button>
-    <button class="card chapter-card stage-button" data-stage="2" bindtap="openMission">
+    <button class="card chapter-card stage-button" bindtap="games">
       <view class="chapter-head">
         <text class="number">02</text>
-        <text class="section-title">世界之门</text>
-        <text class="tag">{{s.missions['2']?'已点亮':'进入'}}</text>
+        <text class="section-title">闯关小游戏</text>
+        <text class="tag">{{gameTag}}</text>
       </view>
-      <view class="muted">国际认证、全球布局</view>
-      <view class="small muted">认证配对 · 三个市场</view>
-    </button>
-    <button class="card chapter-card stage-button" data-stage="3" bindtap="openMission">
-      <view class="chapter-head">
-        <text class="number">03</text>
-        <text class="section-title">客户之光</text>
-        <text class="tag">{{s.missions['3']?'已点亮':'进入'}}</text>
-      </view>
-      <view class="muted">行业聚焦、定制化方案</view>
-      <view class="small muted">预算组卡 · 六选三</view>
-    </button>
-    <button class="card chapter-card stage-button" bindtap="quest">
-      <view class="chapter-head">
-        <text class="number">04</text>
-        <text class="section-title">闯关挑战</text>
-        <text class="tag">{{questTag}}</text>
-      </view>
-      <view class="muted">打卡答题 · 三个小游戏</view>
-      <view class="small muted">任务 {{questDone}} / {{questTotal}}</view>
+      <view class="muted">跳格子 · 配对 · 三消 · 答题 · 实验台</view>
+      <view class="small muted">{{gameHint}}</view>
     </button>
   </view>
   <view class="panel" wx:else>

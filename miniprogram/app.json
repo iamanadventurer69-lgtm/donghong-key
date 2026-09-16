@@ -6,6 +6,8 @@
     "pages/cert/cert",
     "pages/solution/solution",
     "pages/quest/quest",
+    "pages/hop/hop",
+    "pages/games/games",
     "pages/flip/flip",
     "pages/crush/crush",
     "pages/quiz/quiz",

@@ -1,0 +1,53 @@
+<view class="viewport">
+  <view class="topline">
+    <text class="eyebrow">{{game.code}} / {{game.title}}</text>
+    <button class="text-button" bindtap="back">返回闯关</button>
+  </view>
+  <view class="hud">
+    <view class="hud-item"><text class="hud-val">{{tile}}<text class="hud-sub">/{{total}}</text></text><text class="hud-lbl">已跳过</text></view>
+    <view class="hud-item"><text class="hud-val">{{right}}</text><text class="hud-lbl">答对</text></view>
+    <view class="hud-item"><text class="hud-val">{{wrong}}</text><text class="hud-lbl">答错</text></view>
+  </view>
+  <view class="stones">
+    <view
+      wx:for="{{stones}}"
+      wx:key="key"
+      class="stone {{item.passed?'passed':''}} {{item.here?'here':''}} {{item.goal?'goal':''}}"
+    >
+      <text class="stone-label">{{item.label}}</text>
+      <text class="stone-name">{{item.name}}</text>
+      <text class="hopper" wx:if="{{item.here}}">🦘</text>
+    </view>
+  </view>
+  <view class="panel">
+    <view class="tile-head">
+      <text class="tile-index">第 {{tile+1}} 格</text>
+      <text class="tile-name">{{current.name}}</text>
+    </view>
+    <view class="tile-point">{{current.point}}</view>
+    <view class="q-text">{{current.question}}</view>
+    <view class="q-opts">
+      <button
+        wx:for="{{current.options}}"
+        wx:for-index="oi"
+        wx:key="*this"
+        class="option {{answered && oi===current.answer?'right':''}} {{answered && oi===chosen && !rightAnswer?'wrong':''}}"
+        data-index="{{oi}}"
+        bindtap="pick"
+      >{{item}}</button>
+    </view>
+    <view class="feedback {{rightAnswer?'good':'bad'}}" wx:if="{{answered}}">{{feedback}}</view>
+    <button class="primary" wx:if="{{answered}}" bindtap="go">{{rightAnswer?'向前跳一格 →':'退回一格继续 →'}}</button>
+    <view class="hint" wx:else>答对往前跳一格，答错退回一格</view>
+  </view>
+  <view class="mask" wx:if="{{done}}">
+    <view class="sheet">
+      <view class="win-title">🏁 你走到了终点</view>
+      <view class="win-text">{{game.finish}}</view>
+      <view class="win-stats">共答对 {{right}} 题，答错 {{wrong}} 次</view>
+      <view class="win-rank">{{wrong<=2?'⭐ 一次跳过：企业文化很扎实':wrong<=5?'👍 稳稳走完了全程':'💪 走完了，回头再看看错过的格子'}}</view>
+      <button class="primary" bindtap="finish">回到小游戏 →</button>
+      <button class="secondary" bindtap="back">返回上一页</button>
+    </view>
+  </view>
+</view>

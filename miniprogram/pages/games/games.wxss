@@ -1,0 +1,130 @@
+/* 小游戏区：五张游戏卡 + 解锁提示。 */
+.hud {
+  flex-shrink: 0;
+  padding: 9px 12px;
+  background: #fff;
+  border: 1px solid #cce7f7;
+  border-radius: 14px;
+}
+
+.hud.locked {
+  background: #f7fbfe;
+  border-style: dashed;
+}
+
+.hud-num {
+  font:
+    600 16px Menlo,
+    monospace;
+  color: #1c7fb4;
+}
+
+.track {
+  height: 6px;
+  background: #e2f0f8;
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 6px 0 5px;
+}
+
+.track-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4bc0f0, #249fdb);
+  transition: width 0.4s ease;
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+}
+
+.game {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: #fff;
+  border: 1px solid #d7ecf8;
+  border-radius: 14px;
+  text-align: left;
+}
+
+.game.done {
+  background: #eff9ff;
+  border-color: #8fd0f0;
+}
+
+.game-icon {
+  flex: none;
+  font-size: 20px;
+}
+
+.game-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.game-name {
+  font-size: 14px;
+  font-weight: 650;
+  color: #15527a;
+}
+
+.game.done .game-name {
+  color: #2b8bb8;
+}
+
+.game-hint {
+  font-size: 10px;
+  color: #85a4b6;
+}
+
+.game-score {
+  flex: none;
+  font:
+    600 11px Menlo,
+    monospace;
+  color: #1c7fb4;
+}
+
+.game-state {
+  flex: none;
+  font-size: 14px;
+  color: #4f9dc6;
+}
+
+.feedback {
+  flex-shrink: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #fff7e8;
+  border-left: 3px solid #d9903f;
+  color: #8a5a1c;
+}
+
+.hint {
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 10px;
+  color: #7d9cb0;
+}
+
+@media (max-height: 640px) {
+  .game {
+    padding: 7px 10px;
+  }
+  .game-name {
+    font-size: 13px;
+  }
+  .game-icon {
+    font-size: 17px;
+  }
+}

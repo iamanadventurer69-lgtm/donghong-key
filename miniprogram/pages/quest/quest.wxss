@@ -1,7 +1,7 @@
-/* 闯关中心：任务轨道 + 打卡弹层 + 通关结算弹层。 */
+/* 企业文化模块：进度条 + 打卡卡 + 互动关卡 + 小游戏入口 + 弹层。 */
 .hud {
   flex-shrink: 0;
-  padding: 9px 12px;
+  padding: 8px 12px;
   background: #fff;
   border: 1px solid #cce7f7;
   border-radius: 14px;
@@ -9,7 +9,7 @@
 
 .hud-num {
   font:
-    600 16px Menlo,
+    600 15px Menlo,
     monospace;
   color: #1c7fb4;
 }
@@ -19,7 +19,7 @@
   background: #e2f0f8;
   border-radius: 6px;
   overflow: hidden;
-  margin: 6px 0 5px;
+  margin: 5px 0 4px;
 }
 
 .track-fill {
@@ -28,66 +28,170 @@
   transition: width 0.4s ease;
 }
 
-.rail {
-  flex: 1;
-  min-height: 0;
+.section-title {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1c7fb4;
+  margin-top: 2px;
+}
+
+.quest-grid {
+  flex-shrink: 0;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
-  align-content: start;
 }
 
-.task {
+.tile {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: center;
+  gap: 7px;
   padding: 7px 9px;
   background: #fff;
   border: 1px solid #d7ecf8;
   border-radius: 12px;
   text-align: left;
-  min-height: 0;
 }
 
-.task.done {
+.tile.done {
   background: #eff9ff;
   border-color: #8fd0f0;
 }
 
-.task-icon {
-  font-size: 15px;
-  line-height: 1.1;
+.tile-icon {
+  flex: none;
+  font-size: 16px;
 }
 
-.task-name {
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.25;
-  color: #1b5172;
+.tile-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.task.done .task-name {
+.tile-name {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: #15527a;
+}
+
+.tile.done .tile-name {
   color: #2b8bb8;
 }
 
-.task-foot {
+.tile-hint {
+  font-size: 9.5px;
+  color: #85a4b6;
+}
+
+.tile-state {
+  flex: none;
+  font-size: 10px;
+  color: #4f9dc6;
+}
+
+.gate-grid {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.gate {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 9px 6px;
+  background: #fff;
+  border: 1px solid #d7ecf8;
+  border-radius: 12px;
+}
+
+.gate.done {
+  background: #eff9ff;
+  border-color: #8fd0f0;
+}
+
+.gate-icon {
+  font-size: 18px;
+}
+
+.gate-name {
+  font-size: 12px;
+  font-weight: 650;
+  color: #15527a;
+}
+
+.gate.done .gate-name {
+  color: #2b8bb8;
+}
+
+.gate-hint {
+  font-size: 9px;
+  color: #85a4b6;
+}
+
+.gate-state {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 11px;
+  color: #4f9dc6;
+}
+
+.entry {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 10px;
+  padding: 10px 12px;
+  background: linear-gradient(140deg, #ffffff, #eaf6ff);
+  border: 1.5px solid #6cbfe8;
+  border-radius: 14px;
+  text-align: left;
+}
+
+.entry.locked {
+  background: #f7fbfe;
+  border-style: dashed;
+  border-color: #cfe3ee;
+}
+
+.entry-icon {
+  flex: none;
+  font-size: 20px;
+}
+
+.entry-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.entry-name {
+  font-size: 13px;
+  font-weight: 650;
+  color: #14608d;
+}
+
+.entry.locked .entry-name {
+  color: #7d9cb0;
+  font-weight: 600;
+}
+
+.entry-hint {
   font-size: 10px;
   color: #85a4b6;
 }
 
-.task-score {
-  font:
-    600 10px Menlo,
-    monospace;
-  color: #1c7fb4;
-}
-
-.task-state {
-  margin-left: auto;
-  font-size: 13px;
+.entry-state {
+  flex: none;
+  font-size: 15px;
   color: #4f9dc6;
 }
 
@@ -108,10 +212,10 @@
   overflow: hidden;
   background: #fff;
   border-radius: 20px;
-  padding: 18px 16px;
+  padding: 16px 15px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
   animation: pop-up 0.28s ease-out;
 }
 
@@ -126,30 +230,42 @@
 }
 
 .sheet-title {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 650;
   color: #123f60;
 }
 
-.sheet-q {
-  font-size: 13px;
-  line-height: 1.6;
+.intro {
+  font-size: 11px;
+  line-height: 1.5;
   color: #2b5f7d;
+  background: #f3faff;
+  border-left: 3px solid #7cc4e8;
+  border-radius: 0 8px 8px 0;
+  padding: 7px 9px;
+  white-space: pre-line;
+}
+
+.sheet-q {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.55;
+  color: #1b5172;
 }
 
 .option {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   width: 100%;
   text-align: left;
-  padding: 10px 12px;
+  padding: 8px 10px;
   background: #f4faff;
   border: 1px solid #bfdef2;
-  border-radius: 12px;
+  border-radius: 11px;
   color: #235b7a;
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .option.right {
@@ -166,21 +282,21 @@
 
 .letter {
   flex: none;
-  width: 20px;
-  height: 20px;
+  width: 19px;
+  height: 19px;
   border-radius: 50%;
   background: #e4f4fe;
   color: #1c7fb4;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-align: center;
-  line-height: 20px;
+  line-height: 19px;
 }
 
 .explain {
-  font-size: 11px;
-  line-height: 1.6;
-  padding: 8px 10px;
+  font-size: 10.5px;
+  line-height: 1.55;
+  padding: 7px 9px;
   border-radius: 10px;
   border-left: 3px solid;
 }
@@ -245,7 +361,7 @@
 
 .final-val {
   font:
-    700 16px Menlo,
+    700 15px Menlo,
     monospace;
   color: #1c7fb4;
 }
@@ -259,31 +375,31 @@
   background: #f7fcff;
   border: 1px dashed #cfe7f5;
   border-radius: 12px;
-  padding: 8px 10px;
+  padding: 7px 9px;
 }
 
 .detail-title {
   font-size: 11px;
   font-weight: 600;
   color: #1c7fb4;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .detail-row {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 10.5px;
   color: #3d6a83;
   padding: 1px 0;
 }
 
 .grade {
   align-self: center;
-  padding: 7px 26px;
+  padding: 5px 22px;
   border-radius: 30px;
   color: #fff;
   font:
-    900 17px Menlo,
+    900 15px Menlo,
     monospace;
   letter-spacing: 2px;
 }
@@ -312,20 +428,19 @@
 }
 
 @media (max-height: 640px) {
-  .task {
-    padding: 6px 10px;
-    margin-bottom: 4px;
+  .tile {
+    padding: 6px 8px;
   }
-  .task-name {
+  .tile-name {
     font-size: 12px;
+  }
+  .gate {
+    padding: 7px 5px;
   }
   .sheet-title {
     font-size: 16px;
   }
   .option {
-    padding: 8px 10px;
-  }
-  .final-task {
-    font-size: 10px;
+    padding: 7px 9px;
   }
 }

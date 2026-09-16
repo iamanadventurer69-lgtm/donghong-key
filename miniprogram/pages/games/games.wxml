@@ -1,0 +1,29 @@
+<view class="viewport">
+  <view class="topline">
+    <text class="eyebrow">CHALLENGE ZONE / 闯关小游戏</text>
+    <button class="text-button" bindtap="back">返回首页</button>
+  </view>
+  <view class="hud {{unlocked?'':'locked'}}">
+    <view class="row">
+      <text class="label">{{unlocked?'小游戏进度':'尚未解锁'}}</text>
+      <text class="hud-num">{{progress.done}} / {{progress.total}}</text>
+    </view>
+    <view class="track"><view class="track-fill" style="width:{{progress.done * 100 / progress.total}}%"/></view>
+    <view class="small muted">{{unlocked?'选一个开始，成绩都会记进探索档案':'完成企业文化模块（介绍打卡 + 三个互动关卡）后解锁'}}</view>
+  </view>
+  <view class="list">
+    <button wx:for="{{games}}" wx:key="id" class="game {{item.done?'done':''}}" data-id="{{item.id}}" bindtap="open">
+      <text class="game-icon">{{item.icon}}</text>
+      <view class="game-main">
+        <text class="game-name">{{item.name}}</text>
+        <text class="game-hint">{{item.hint}}</text>
+      </view>
+      <text class="game-score" wx:if="{{item.score}}">{{item.score}}</text>
+      <text class="game-state">{{item.done?'✓':unlocked?'›':'🔒'}}</text>
+    </button>
+  </view>
+  <view class="feedback" wx:if="{{feedback}}">{{feedback}}</view>
+  <view class="hint" wx:else>{{unlocked?'成绩计入通关结算的 GRADE 评级':'小游戏：跳格子 / 配对 / 三消 / 答题 / 实验台'}}</view>
+  <button class="secondary" wx:if="{{!unlocked}}" bindtap="toModule">← 先去完成企业文化模块</button>
+  <view class="save-warning" wx:if="{{warning}}">{{warning}}</view>
+</view>

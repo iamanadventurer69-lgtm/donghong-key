@@ -311,7 +311,8 @@ test('小游戏成绩：配对、三消、答题各自记分，答题可以重�
     quiz: { done: false, score: 0, results: [] },
     cert: { matched: [] },
     solution: { done: false, picks: [], perfect: false },
-    repro: { done: false, load: 0 }
+    repro: { done: false, load: 0 },
+    hop: { done: false, tile: 0, right: 0, wrong: 0 }
   });
 
   s = advance(s, 'flipResult', { moves: 14, seconds: 75 });
@@ -382,6 +383,10 @@ test('任务清单、进度与全部通关判定', () => {
     s = advance(s, 'quizAnswer', { index, choice: question.ans });
   });
   s = finishChapters(s);
+  for (let step = 0; step < content.hopGame.tiles.length; step += 1) {
+    const tile = s.games.hop.tile;
+    s = advance(s, 'hopAnswer', { index: tile, choice: content.hopGame.tiles[tile].answer });
+  }
 
   assert.equal(state.allDone(s), true);
   assert.deepEqual(state.taskProgress(s), {
@@ -449,4 +454,75 @@ test('复现异常：负载不到阈值不算通过，通过后记录负载', ()
   const task = state.tasks(s).find((item) => item.id === 'repro');
   assert.equal(task.done, true);
   assert.equal(task.page, '/pages/repro/repro');
+});
+
+test('文化跳格子：答对前进一格，答错退回一格，起点不会退到负数', () => {
+  const tiles = content.hopGame.tiles;
+  let s = started();
+  assert.deepEqual(s.games.hop, { done: false, tile: 0, right: 0, wrong: 0 });
+
+  // 乱序提交被忽略
+  s = advance(s, 'hopAnswer', { index: 3, choice: tiles[3].answer });
+  assert.equal(s.games.hop.tile, 0);
+
+  s = advance(s, 'hopAnswer', { index: 0, choice: tiles[0].answer });
+  assert.deepEqual(s.games.hop, { done: false, tile: 1, right: 1, wrong: 0 });
+
+  s = advance(s, 'hopAnswer', {
+    index: 1,
+    choice: (tiles[1].answer + 1) % tiles[1].options.length
+  });
+  assert.equal(s.games.hop.tile, 0);
+  assert.equal(s.games.hop.wrong, 1);
+  assert.equal(s.mistakes, 1, '答错也记一次错');
+
+  // 在起点再答错：位置夹在 0
+  s = advance(s, 'hopAnswer', { index: 0, choice: (tiles[0].answer + 1) % 4 });
+  assert.equal(s.games.hop.tile, 0);
+  assert.equal(s.games.hop.wrong, 2);
+
+  // 一路答对走到终点
+  let run = started();
+  for (let step = 0; step < tiles.length; step += 1) {
+    const tile = run.games.hop.tile;
+    run = advance(run, 'hopAnswer', { index: tile, choice: tiles[tile].answer });
+  }
+  assert.equal(run.games.hop.tile, tiles.length);
+  assert.equal(run.games.hop.done, true);
+  assert.equal(run.games.hop.right, tiles.length);
+  // 通关后再提交不会继续加
+  run = advance(run, 'hopAnswer', { index: 11, choice: 0 });
+  assert.equal(run.games.hop.right, tiles.length);
+  assert.deepEqual(normalize(JSON.parse(JSON.stringify(run))).games.hop, run.games.hop);
+});
+
+test('伪造的跳格子记录会被夹回合法范围', () => {
+  const forged = normalize({ version: 5, games: { hop: { tile: 99, right: -3, wrong: 1000 } } });
+  assert.equal(forged.games.hop.tile, content.hopGame.tiles.length);
+  assert.equal(forged.games.hop.right, 0);
+  assert.equal(forged.games.hop.wrong, 999);
+  assert.equal(forged.games.hop.done, true, '位置在终点就算通关');
+
+  const midway = normalize({ version: 5, games: { hop: { tile: 4, right: 5, wrong: 1 } } });
+  assert.equal(midway.games.hop.done, false);
+  assert.equal(midway.games.hop.tile, 4);
+});
+
+test('企业文化模块完成度决定小游戏是否解锁', () => {
+  let s = started();
+  assert.equal(state.cultureDone(s), false, '刚说完使命，模块还没开始');
+
+  s = play(GOOD);
+  s = advance(s, 'complete', content.actions[0]);
+  for (const quest of content.quests)
+    s = advance(s, 'checkin', { questId: quest.id, choice: quest.answer });
+  assert.equal(state.cultureDone(s), false, '还差两个章节互动关卡');
+
+  s = finishChapters(s);
+  assert.equal(state.cultureDone(s), true);
+  assert.equal(state.allDone(s), false, '小游戏还没做，不算全部通关');
+
+  const task = state.tasks(s).find((item) => item.id === 'hop');
+  assert.equal(task.page, '/pages/hop/hop');
+  assert.equal(task.done, false);
 });

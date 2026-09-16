@@ -89,7 +89,8 @@ function initial() {
       quiz: { done: false, score: 0, results: [] },
       cert: { matched: [] },
       solution: { done: false, picks: [], perfect: false },
-      repro: { done: false, load: 0 }
+      repro: { done: false, load: 0 },
+      hop: { done: false, tile: 0, right: 0, wrong: 0 }
     },
     mistakes: 0,
     updatedAt: 0,
@@ -215,6 +216,17 @@ function normalizeGames(raw, legacyMissions) {
     done: valid,
     picks: valid ? picks : [],
     perfect: valid && game.perfect.every((id) => picks.includes(id))
+  };
+
+  const hop = source.hop || {};
+  const hopTotal = content.hopGame.tiles.length;
+  const hopTile = Number.isSafeInteger(hop.tile) ? Math.max(0, Math.min(hopTotal, hop.tile)) : 0;
+  const count = (value) => (Number.isSafeInteger(value) ? Math.max(0, Math.min(999, value)) : 0);
+  games.hop = {
+    tile: hopTile,
+    right: count(hop.right),
+    wrong: count(hop.wrong),
+    done: hopTile >= hopTotal
   };
 
   const repro = source.repro || {};
@@ -354,6 +366,20 @@ function advance(state, event, payload) {
       s.games.cert.matched.push(market);
       break;
     }
+    case 'hopAnswer': {
+      const hop = s.games.hop;
+      const tile = content.hopGame.tiles[hop.tile];
+      const index = payload && payload.index;
+      if (hop.done || !tile || index !== hop.tile) break;
+      if (payload.choice === tile.answer) {
+        s.games.hop = { ...hop, tile: hop.tile + 1, right: hop.right + 1 };
+        s.games.hop.done = s.games.hop.tile >= content.hopGame.tiles.length;
+      } else {
+        s.mistakes += 1;
+        s.games.hop = { ...hop, tile: Math.max(0, hop.tile - 1), wrong: hop.wrong + 1 };
+      }
+      break;
+    }
     case 'reproResult': {
       const load = Number.isSafeInteger(payload && payload.load) ? payload.load : 0;
       if (s.games.repro.done || load < content.reproGame.targetMin) break;
@@ -452,6 +478,13 @@ function tasks(s) {
       page: '/pages/repro/repro'
     },
     {
+      id: 'hop',
+      icon: '🦘',
+      name: '文化跳格子',
+      done: s.games.hop.done,
+      page: '/pages/hop/hop'
+    },
+    {
       id: 'cert',
       icon: '🌍',
       name: '世界之门 · 认证配对',
@@ -481,6 +514,17 @@ function taskProgress(s) {
   return { done: list.filter((task) => task.done).length, total: list.length };
 }
 
+/** 企业文化模块是否完成：四个展区打卡 + 第一章值班 + 第二、三章互动关卡。 */
+function cultureDone(s) {
+  return (
+    s.checkins &&
+    Object.values(s.checkins).every(Boolean) &&
+    shiftDone(s) &&
+    s.missions['2'] === true &&
+    s.missions['3'] === true
+  );
+}
+
 /** 是否全部通关（任务清单全部完成）。 */
 function allDone(s) {
   return tasks(s).every((task) => task.done);
@@ -505,8 +549,10 @@ function scoreboard(s) {
     cert: { matched: s.games.cert.matched.length, total: content.certGame.markets.length },
     solution: s.games.solution,
     repro: s.games.repro,
+    hop: s.games.hop,
     grade: grade(s),
-    progress: taskProgress(s)
+    progress: taskProgress(s),
+    tasks: tasks(s)
   };
 }
 
@@ -558,6 +604,7 @@ module.exports = {
   route,
   portrait,
   tasks,
+  cultureDone,
   taskProgress,
   allDone,
   grade,

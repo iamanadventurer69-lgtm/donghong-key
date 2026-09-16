@@ -13,6 +13,8 @@ function litNodes(s) {
   return Math.min(6, 2 + s.decisions.length);
 }
 
+const GAMES = ['hop', 'flip', 'crush', 'quiz', 'repro'];
+
 /** 主按钮文案。 */
 function primaryLabel(s) {
   if (s.completed) return '回顾我的文化画像';
@@ -30,35 +32,33 @@ Page({
   },
   onShow() {
     const s = store.read();
-    const done = s.decisions.length;
-    const total = state.CARDS.length;
     const progress = state.taskProgress(s);
+    const culture = state.cultureDone(s);
+    const finished = GAMES.filter((id) => (id === 'hop' ? s.games.hop.done : s.games[id].done));
     this.setData({
       s,
       percent: state.percent(s),
       active: litNodes(s),
       warning: store.warning(),
       cta: primaryLabel(s),
-      shiftTag:
-        s.completed || done >= total ? '已点亮' : done > 0 ? `${done} / ${total}` : '可探索',
-      questTag: progress.done >= progress.total ? '已通关' : `${progress.done} / ${progress.total}`,
-      questDone: progress.done,
-      questTotal: progress.total
+      cultureTag: culture ? '已完成' : `${progress.done} / ${progress.total}`,
+      gameTag: culture ? `${finished.length} / ${GAMES.length}` : '未解锁',
+      gameHint: culture ? '成绩计入通关结算' : '先完成企业文化模块'
     });
   },
+  /** 主线：序章 → 质量值班 → 文化画像。 */
   start() {
     wx.navigateTo({ url: state.route(store.read()) });
   },
-  /** 第二章是认证配对，第三章是方案组卡。 */
-  openMission(e) {
-    const url =
-      e.currentTarget.dataset.stage === '3' ? '/pages/solution/solution' : '/pages/cert/cert';
-    wx.navigateTo({ url });
+  /** 企业文化模块：介绍打卡 + 三个互动关卡。 */
+  culture() {
+    wx.navigateTo({ url: '/pages/quest/quest' });
+  },
+  /** 闯关小游戏：企业文化模块完成后解锁。 */
+  games() {
+    wx.navigateTo({ url: '/pages/games/games' });
   },
   progress() {
     wx.navigateTo({ url: '/pages/progress/progress' });
-  },
-  quest() {
-    wx.navigateTo({ url: '/pages/quest/quest' });
   }
 });

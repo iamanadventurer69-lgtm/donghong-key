@@ -1,78 +1,119 @@
 <view class="viewport">
   <view class="topline">
-    <text class="eyebrow">CHALLENGE ZONE / 闯关中心</text>
+    <text class="eyebrow">CULTURE MODULE / 企业文化</text>
     <button class="text-button" bindtap="home">首页</button>
   </view>
   <view class="hud">
     <view class="row">
-      <text class="label">任务进度</text>
+      <text class="label">模块进度</text>
       <text class="hud-num">{{progress.done}} / {{progress.total}}</text>
     </view>
-    <view class="track">
-      <view class="track-fill" style="width:{{scoreboard.grade ? 100 : progress.done * 100 / progress.total}}%"/>
-    </view>
-    <view class="row small muted">
-      <text>主线进度 {{percent}}%</text>
-      <text wx:if="{{grade}}">{{grade.code}} 级</text>
-    </view>
+    <view class="track"><view class="track-fill" style="width:{{progress.done * 100 / progress.total}}%"/></view>
+    <view class="small muted">{{moduleDone?'✅ 模块已完成，闯关小游戏已解锁':'主线进度 ' + percent + '%'}}</view>
   </view>
-  <view class="rail">
+  <view class="section-title">① 文化介绍 · 打卡答题</view>
+  <view class="quest-grid">
     <button
-      wx:for="{{tasks}}"
+      wx:for="{{checkins}}"
       wx:key="id"
-      class="task {{item.done?'done':''}}"
+      class="tile {{item.done?'done':''}}"
       data-id="{{item.id}}"
-      bindtap="openTask"
+      bindtap="openQuest"
     >
-      <text class="task-icon">{{item.icon}}</text>
-      <text class="task-name">{{item.name}}</text>
-      <view class="task-foot">
-        <text class="task-kind">{{item.kind==='checkin'?'打卡':item.kind==='game'?'小游戏':'剧情'}}</text>
-        <text class="task-score" wx:if="{{item.score}}">· {{item.score}}</text>
-        <text class="task-state">{{item.done?'✓':'›'}}</text>
+      <text class="tile-icon">{{item.icon}}</text>
+      <view class="tile-main">
+        <text class="tile-name">{{item.name}}</text>
+        <text class="tile-hint">{{item.hint}}</text>
       </view>
+      <text class="tile-state">{{item.done?'✓':'打卡'}}</text>
     </button>
   </view>
-  <button class="primary" disabled="{{!allDone}}" bindtap="openFinal">{{allDone?'查看通关结算 🏆':'任务全部完成后解锁结算'}}</button>
+  <view class="section-title">② 互动关卡</view>
+  <view class="gate-grid">
+    <button
+      wx:for="{{gates}}"
+      wx:key="id"
+      class="gate {{item.done?'done':''}}"
+      data-id="{{item.id}}"
+      bindtap="openGate"
+    >
+      <text class="gate-icon">{{item.icon}}</text>
+      <text class="gate-name">{{item.name}}</text>
+      <text class="gate-hint">{{item.hint}}</text>
+      <text class="gate-state">{{item.done?'✓':'›'}}</text>
+    </button>
+  </view>
+  <view class="section-title">③ 闯关小游戏</view>
+  <button class="entry {{moduleDone?'':'locked'}}" bindtap="toGames">
+    <text class="entry-icon">{{moduleDone?'🦘':'🔒'}}</text>
+    <view class="entry-main">
+      <text class="entry-name">{{moduleDone?'文化跳格子 · 五个小游戏':'完成上面两个部分后解锁'}}</text>
+      <text class="entry-hint">{{moduleDone?'答对前进一格，答错退回一格':'先把企业文化走一遍，再来闯关'}}</text>
+    </view>
+    <text class="entry-state">{{moduleDone?'›':''}}</text>
+  </button>
+  <button class="primary" disabled="{{!allDone}}" bindtap="openFinal">
+    {{allDone?'查看通关结算 🏆':'全部任务完成后解锁结算'}}
+  </button>
   <view class="save-warning" wx:if="{{warning}}">{{warning}}</view>
   <view class="mask" wx:if="{{questOpen}}">
     <view class="sheet">
       <view class="badge">{{quest.badge}}</view>
       <view class="sheet-title">{{quest.title}}</view>
-      <view class="sheet-q">{{quest.question}}</view>
-      <button
-        wx:for="{{quest.options}}"
-        wx:key="*this"
-        class="option {{picked && index===quest.answer?'right':''}} {{picked && index===choice && !right?'wrong':''}}"
-        data-index="{{index}}"
-        bindtap="pick"
-      ><text class="letter">{{index===0?'A':index===1?'B':index===2?'C':'D'}}</text><text>{{item}}</text></button>
-      <view class="explain {{right?'ok':'no'}}" wx:if="{{picked}}">{{quest.explain}}</view>
-      <button class="primary" wx:if="{{picked && right}}" bindtap="closeQuest">打卡成功，继续闯关 →</button>
-      <button class="secondary" wx:if="{{picked && !right}}" bindtap="restart">再试一次</button>
+      <block wx:if="{{questPhase==='intro'}}">
+        <view class="intro">{{quest.intro}}</view>
+        <view class="small muted">看完这段内容，回答下面的问题就算完成打卡。</view>
+        <button class="primary" bindtap="startQuest">开始打卡答题 →</button>
+      </block>
+      <block wx:elif="{{questPhase==='ask'}}">
+        <view class="sheet-q">{{quest.question}}</view>
+        <button
+          wx:for="{{quest.options}}"
+          wx:for-index="oi"
+          wx:key="*this"
+          class="option"
+          data-index="{{oi}}"
+          bindtap="pick"
+        ><text class="letter">{{oi===0?'A':oi===1?'B':oi===2?'C':'D'}}</text><text>{{item}}</text></button>
+      </block>
+      <block wx:else>
+        <button
+          wx:for="{{quest.options}}"
+          wx:for-index="oi"
+          wx:key="*this"
+          class="option {{oi===quest.answer?'right':''}} {{oi===choice && !right?'wrong':''}}"
+          data-index="{{oi}}"
+          bindtap="pick"
+        ><text class="letter">{{oi===0?'A':oi===1?'B':oi===2?'C':'D'}}</text><text>{{item}}</text></button>
+        <view class="explain {{right?'ok':'no'}}">{{quest.explain}}</view>
+        <button class="primary" wx:if="{{right}}" bindtap="closeQuest">打卡成功，继续 →</button>
+        <button class="secondary" wx:if="{{!right}}" bindtap="restart">再试一次</button>
+      </block>
     </view>
   </view>
   <view class="mask" wx:if="{{finalOpen}}">
     <view class="sheet final">
       <view class="final-title">🏆 东鸿密钥 · 全部通关！</view>
-      <view class="small muted">你完成了全部探索任务</view>
+      <view class="small muted">你完成了企业文化与企业探索的全部任务</view>
       <view class="final-tasks">
-        <view class="final-task" wx:for="{{tasks}}" wx:key="id">
+        <view class="final-task" wx:for="{{scoreboard.tasks}}" wx:key="id">
           <text>{{item.icon}} {{item.name}}</text>
           <text class="final-state">{{item.done?'✅':'⬜'}}</text>
         </view>
       </view>
       <view class="final-scores">
         <view class="final-score"><text class="final-val">{{scoreboard.trust}}</text><text class="final-lbl">客户信任</text></view>
-        <view class="final-score"><text class="final-val">{{scoreboard.flip.moves}}</text><text class="final-lbl">配对步数</text></view>
+        <view class="final-score"><text class="final-val">{{scoreboard.hop.wrong}}</text><text class="final-lbl">跳格子失误</text></view>
         <view class="final-score"><text class="final-val">{{scoreboard.crush.score}}</text><text class="final-lbl">三消得分</text></view>
         <view class="final-score"><text class="final-val">{{scoreboard.quiz.score}}</text><text class="final-lbl">答题分数</text></view>
       </view>
       <view class="final-detail">
-        <view class="detail-title">📝 知识答题（{{scoreboard.quiz.correct}} / {{scoreboard.quiz.total}} 题正确）</view>
-        <view class="detail-row"><text>配对用时</text><text>{{scoreboard.flip.seconds}} 秒</text></view>
-        <view class="detail-row"><text>三消评价</text><text>{{scoreboard.crush.score>=300?'⭐ 手速大师':scoreboard.crush.score>=150?'👍 不错':'💪 再接再厉'}}</text></view>
-        <view class="detail-row"><text>最高印记</text><text>{{grade.code}} 级 · 信任 {{scoreboard.trust}}</text></view>
+        <view class="detail-title">成绩明细</view>
+        <view class="detail-row"><text>认证配对</text><text>{{scoreboard.cert.matched}} / {{scoreboard.cert.total}} 个市场</text></view>
+        <view class="detail-row"><text>方案组卡</text><text>{{scoreboard.solution.perfect?'满分组通过':'已通过'}}</text></view>
+        <view class="detail-row"><text>模块配对</text><text>{{scoreboard.flip.moves}} 步 / {{scoreboard.flip.seconds}} 秒</text></view>
+        <view class="detail-row"><text>复现异常</text><text>{{scoreboard.repro.load}}% 负载</text></view>
+        <view class="detail-row"><text>知识答题</text><text>{{scoreboard.quiz.correct}} / {{scoreboard.quiz.total}} 题正确</text></view>
       </view>
       <view class="grade" style="background:{{grade.color}}">GRADE {{grade.code}}</view>
       <view class="small muted final-msg">{{grade.comment}}</view>

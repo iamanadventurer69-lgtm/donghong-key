@@ -49,6 +49,22 @@ function setPath(target, key, value) {
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** 只把「企业文化模块」做满：序章 + 值班 + 四展区打卡 + 两个章节小游戏。 */
+function finishCulture(store) {
+  for (const event of ['prologue', 'prologue', 'mission']) store.dispatch(event);
+  for (const choiceId of ['return', 'refit', 'extra', 'refuse', 'standard', 'fit']) {
+    const card = state.currentCard(store.read());
+    store.dispatch('choose', { cardId: card.id, choiceId });
+  }
+  for (const quest of c.quests)
+    store.dispatch('checkin', { questId: quest.id, choice: quest.answer });
+  for (const [market, cert] of Object.entries(c.certGame.answer)) {
+    store.dispatch('certMatch', { market, cert });
+  }
+  store.dispatch('solution', { picks: c.solutionGame.perfect });
+}
+
 const tapCell = (row, col) => ({ currentTarget: { dataset: { row, col } } });
 
 /** 把整局做满：主线、打卡、三个小游戏、二三章。 */
@@ -64,6 +80,10 @@ function finishEverything(store) {
   store.dispatch('flipResult', { moves: 16, seconds: 60 });
   store.dispatch('crushResult', { score: 320 });
   store.dispatch('reproResult', { load: c.reproGame.targetMin });
+  for (let step = 0; step < c.hopGame.tiles.length; step += 1) {
+    const tile = store.read().games.hop.tile;
+    store.dispatch('hopAnswer', { index: tile, choice: c.hopGame.tiles[tile].answer });
+  }
   c.quizBank.forEach((question, index) =>
     store.dispatch('quizAnswer', { index, choice: question.ans })
   );
@@ -125,7 +145,8 @@ test('值班闭环：六份材料盖章 → 文化画像 → 行动承诺', () =
   const home = page('home');
   home.onShow();
   assert.equal(home.data.percent, 80);
-  assert.equal(home.data.shiftTag, '已点亮');
+  assert.match(home.data.cultureTag, /^\d+ \/ \d+$/);
+  assert.equal(home.data.gameTag, '未解锁', '企业文化模块没做完，小游戏还没解锁');
 
   // 两个可选章节答对后到 100%，首页继续探索直接去画像。
   const cert = page('cert');
@@ -258,14 +279,15 @@ test('探索档案显示信任值、印记与值班进度，清档可重来', ()
   assert.equal(progress.data.trust, 60);
   assert.equal(progress.data.percent, 0);
 });
-test('闯关中心：打卡答题答对才点亮，任务轨道同步', () => {
+test('企业文化模块：打卡弹层先看内容再答题，答对才点亮', () => {
   const { store } = setup();
   const quest = page('quest');
   quest.onShow();
-  assert.equal(quest.data.progress.done, 0);
-  assert.equal(quest.data.tasks.length, quest.data.progress.total);
+  assert.equal(quest.data.moduleDone, false);
+  assert.equal(quest.data.checkins.length, c.quests.length);
+  assert.equal(quest.data.gates.length, 3);
 
-  quest.openTask({ currentTarget: { dataset: { id: 'culture' } } });
+  quest.openQuest({ currentTarget: { dataset: { id: 'culture' } } });
   assert.equal(quest.data.questOpen, true);
   assert.equal(quest.data.quest.id, 'culture');
 
@@ -283,9 +305,10 @@ test('闯关中心：打卡答题答对才点亮，任务轨道同步', () => {
 
   quest.closeQuest();
   quest.onShow();
+  assert.equal(quest.data.checkins.find((item) => item.id === 'culture').done, true);
   assert.equal(quest.data.progress.done, 1);
-  assert.equal(quest.data.tasks.find((task) => task.id === 'culture').done, true);
-  assert.equal(quest.data.tasks.find((task) => task.id === 'crush').kind, 'game');
+  // 模块没做完，小游戏入口应当是锁着的
+  assert.equal(quest.data.moduleDone, false);
 });
 
 test('闯关中心：全部完成后自动弹出通关结算，并给出评级与成绩明细', () => {
@@ -294,6 +317,7 @@ test('闯关中心：全部完成后自动弹出通关结算，并给出评级�
 
   const quest = page('quest');
   quest.onShow();
+  assert.equal(quest.data.moduleDone, true, '企业文化模块应当已完成');
   assert.equal(quest.data.allDone, true);
   assert.equal(quest.data.finalOpen, true, '全部通关时自动弹结算');
   assert.equal(quest.data.grade.code, 'S');
@@ -538,4 +562,68 @@ test('复现异常：断电与低负载不计数，推到阈值并稳住才通�
   repro.finish();
   assert.equal(routes.at(-1), '/pages/quest/quest');
   repro.onUnload();
+});
+
+test('小游戏区：企业文化模块没完成时锁定，完成后可以进入跳格子', () => {
+  const { store, routes } = setup();
+  const games = page('games');
+  games.onShow();
+  assert.equal(games.data.unlocked, false);
+  assert.equal(games.data.games.length, 5);
+  assert.equal(games.data.games[0].id, 'hop');
+
+  games.open({ currentTarget: { dataset: { id: 'hop' } } });
+  assert.match(games.data.feedback, /先完成企业文化模块/);
+  assert.equal(routes.length, 0);
+  games.toModule();
+  assert.equal(routes.at(-1), '/pages/quest/quest');
+
+  // 把企业文化模块做满后再进来
+  const fresh = setup();
+  finishCulture(fresh.store);
+  const opened = page('games');
+  opened.onShow();
+  assert.equal(opened.data.unlocked, true);
+  opened.open({ currentTarget: { dataset: { id: 'hop' } } });
+  assert.equal(fresh.routes.at(-1), '/pages/hop/hop');
+  assert.equal(opened.data.progress.done, 0);
+});
+
+test('文化跳格子：答对前进、答错后退，走到终点写出成绩', () => {
+  const { store, routes } = setup();
+  finishCulture(store);
+  const hop = page('hop');
+  hop.onShow();
+  assert.equal(hop.data.tile, 0);
+  assert.equal(hop.data.stones.length, c.hopGame.tiles.length);
+  assert.equal(hop.data.stones[0].here, true);
+
+  // 第 1 题答对：前进一格
+  hop.pick({ currentTarget: { dataset: { index: c.hopGame.tiles[0].answer } } });
+  assert.equal(hop.data.rightAnswer, true);
+  assert.match(hop.data.feedback, /往前跳一格/);
+  hop.go();
+  assert.equal(hop.data.tile, 1);
+  assert.equal(hop.data.stones[0].passed, true);
+  assert.equal(hop.data.stones[1].here, true);
+
+  // 第 2 题答错：退回一格
+  const wrong = (c.hopGame.tiles[1].answer + 1) % 4;
+  hop.pick({ currentTarget: { dataset: { index: wrong } } });
+  assert.equal(hop.data.rightAnswer, false);
+  assert.match(hop.data.feedback, /退回一格/);
+  hop.go();
+  assert.equal(hop.data.tile, 0);
+  assert.equal(store.read().games.hop.wrong, 1);
+
+  // 一路答对走到终点
+  for (let step = 0; step < c.hopGame.tiles.length; step += 1) {
+    const tile = hop.data.tile;
+    hop.pick({ currentTarget: { dataset: { index: c.hopGame.tiles[tile].answer } } });
+    hop.go();
+  }
+  assert.equal(store.read().games.hop.done, true);
+  assert.equal(hop.data.done, true);
+  hop.finish();
+  assert.equal(routes.at(-1), '/pages/games/games');
 });

@@ -50,16 +50,21 @@ Component({
       const load = clampLoad(e.detail.value);
       this.setData({ load, power: this.data.running ? this.reading(load) : '0000' });
       this.draw();
+      this.emit(load);
     },
     toggle() {
       const running = !this.data.running;
       this.setData({ running, power: running ? this.reading(this.data.load) : '0000' });
-      if (running) {
-        this.start();
-        return;
+      if (running) this.start();
+      else {
+        this.stop();
+        this.draw();
       }
-      this.stop();
-      this.draw();
+      this.emit(this.data.load);
+    },
+    /** 把当前负载与通电状态抛给页面（复现异常关卡靠它判定）。 */
+    emit(load) {
+      this.triggerEvent('loadchange', { load, running: this.data.running });
     },
     /** 通电时的功率读数；断电统一显示 0000。 */
     reading(load) {

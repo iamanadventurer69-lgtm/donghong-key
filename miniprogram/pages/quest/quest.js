@@ -47,11 +47,13 @@ Page({
     const progress = state.taskProgress(s);
     const allDone = state.allDone(s);
     this.setData({
-      tasks: state.tasks(s).map((task) => ({
-        ...task,
-        kind: kindOf(task.id),
-        score: task.kind === 'game' ? gameScore(task.id, s.games) : ''
-      })),
+      tasks: state.tasks(s).map((task) => {
+        const kind = kindOf(task.id);
+        let score = '';
+        if (kind === 'game') score = gameScore(task.id, s.games);
+        else if (task.id === 'repro' && s.games.repro.done) score = `${s.games.repro.load}%`;
+        return { ...task, kind, score };
+      }),
       progress,
       percent: state.percent(s),
       allDone,

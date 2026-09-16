@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "复现异常",
+  "disableScroll": true,
+  "usingComponents": {
+    "live-meter": "/components/live-meter/live-meter"
+  }
+}

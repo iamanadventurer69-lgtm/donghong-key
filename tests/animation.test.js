@@ -13,6 +13,10 @@ function component(name) {
     setData(v) {
       Object.assign(this.data, v);
     },
+    triggerEvent(name, detail) {
+      this.events = this.events || [];
+      this.events.push({ name, detail });
+    },
     alive: true,
     visible: true
   };

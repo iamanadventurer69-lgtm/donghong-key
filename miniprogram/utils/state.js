@@ -88,7 +88,8 @@ function initial() {
       crush: { done: false, score: 0 },
       quiz: { done: false, score: 0, results: [] },
       cert: { matched: [] },
-      solution: { done: false, picks: [], perfect: false }
+      solution: { done: false, picks: [], perfect: false },
+      repro: { done: false, load: 0 }
     },
     mistakes: 0,
     updatedAt: 0,
@@ -215,6 +216,11 @@ function normalizeGames(raw, legacyMissions) {
     picks: valid ? picks : [],
     perfect: valid && game.perfect.every((id) => picks.includes(id))
   };
+
+  const repro = source.repro || {};
+  const reproLoad = Number.isSafeInteger(repro.load) ? Math.max(0, Math.min(100, repro.load)) : 0;
+  const reproOk = repro.done === true && reproLoad >= content.reproGame.targetMin;
+  games.repro = { done: reproOk, load: reproOk ? reproLoad : 0 };
 
   // 旧存档（v4 及更早）把章节完成状态记在 missions 上：按「已通过」补成完整记录
   if (legacyMissions) {
@@ -348,6 +354,12 @@ function advance(state, event, payload) {
       s.games.cert.matched.push(market);
       break;
     }
+    case 'reproResult': {
+      const load = Number.isSafeInteger(payload && payload.load) ? payload.load : 0;
+      if (s.games.repro.done || load < content.reproGame.targetMin) break;
+      s.games.repro = { done: true, load: Math.min(100, load) };
+      break;
+    }
     case 'solution': {
       const game = content.solutionGame;
       const picks = Array.isArray(payload && payload.picks) ? [...new Set(payload.picks)] : [];
@@ -433,6 +445,13 @@ function tasks(s) {
       page: '/pages/quest/quest'
     },
     {
+      id: 'repro',
+      icon: '🎚️',
+      name: '复现异常（实验台）',
+      done: s.games.repro.done,
+      page: '/pages/repro/repro'
+    },
+    {
       id: 'cert',
       icon: '🌍',
       name: '世界之门 · 认证配对',
@@ -485,6 +504,7 @@ function scoreboard(s) {
     },
     cert: { matched: s.games.cert.matched.length, total: content.certGame.markets.length },
     solution: s.games.solution,
+    repro: s.games.repro,
     grade: grade(s),
     progress: taskProgress(s)
   };

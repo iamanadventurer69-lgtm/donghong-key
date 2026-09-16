@@ -310,7 +310,8 @@ test('小游戏成绩：配对、三消、答题各自记分，答题可以重�
     crush: { done: false, score: 0 },
     quiz: { done: false, score: 0, results: [] },
     cert: { matched: [] },
-    solution: { done: false, picks: [], perfect: false }
+    solution: { done: false, picks: [], perfect: false },
+    repro: { done: false, load: 0 }
   });
 
   s = advance(s, 'flipResult', { moves: 14, seconds: 75 });
@@ -376,6 +377,7 @@ test('任务清单、进度与全部通关判定', () => {
     s = advance(s, 'checkin', { questId: quest.id, choice: quest.answer });
   s = advance(s, 'flipResult', { moves: 16, seconds: 60 });
   s = advance(s, 'crushResult', { score: 320 });
+  s = advance(s, 'reproResult', { load: content.reproGame.targetMin });
   content.quizBank.forEach((question, index) => {
     s = advance(s, 'quizAnswer', { index, choice: question.ans });
   });
@@ -423,4 +425,28 @@ test('通关评级按成绩分档', () => {
   perfect.games.quiz.score = 90;
   assert.equal(state.grade(perfect).code, 'S');
   assert.ok(state.grade(perfect).comment.length > 0);
+});
+
+test('复现异常：负载不到阈值不算通过，通过后记录负载', () => {
+  let s = started();
+  assert.equal(s.games.repro.done, false);
+
+  s = advance(s, 'reproResult', { load: 60 });
+  assert.equal(s.games.repro.done, false, '低负载不算复现');
+
+  s = advance(s, 'reproResult', { load: content.reproGame.targetMin });
+  assert.equal(s.games.repro.done, true);
+  assert.equal(s.games.repro.load, content.reproGame.targetMin);
+  assert.deepEqual(normalize(JSON.parse(JSON.stringify(s))).games.repro, s.games.repro);
+
+  // 伪造的负载会被夹到 0~100，且低于阈值一律作废
+  const forged = normalize({ version: 5, games: { repro: { done: true, load: 999 } } });
+  assert.deepEqual(forged.games.repro, { done: true, load: 100 });
+  const low = normalize({ version: 5, games: { repro: { done: true, load: 10 } } });
+  assert.equal(low.games.repro.done, false);
+
+  // 任务清单里能点进实验台页面
+  const task = state.tasks(s).find((item) => item.id === 'repro');
+  assert.equal(task.done, true);
+  assert.equal(task.page, '/pages/repro/repro');
 });

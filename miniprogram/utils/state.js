@@ -574,7 +574,7 @@ function highlights(s, limit = 3) {
     if (choice.flag) flags[choice.flag] = true;
     seen.push({
       card: card.title,
-      choice: choice.label.replace(/^盖章[：:]?/, ''),
+      choice: choice.label,
       stamp: choice.stamp,
       trust: choice.trust || 0,
       result: choice.result

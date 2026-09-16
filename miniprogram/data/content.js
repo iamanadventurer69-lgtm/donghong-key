@@ -47,7 +47,7 @@ module.exports = {
     {
       tag: '03 / 你的探索任务',
       title: '点亮能源网络，\n从技术之芯开始。',
-      text: '你将成为东鸿文化探索员：在质量值班里，一批批出厂前的电表由你盖章放行或退回重测。每一次盖章，都对应一种工作态度。',
+      text: '你将成为东鸿文化探索员：在质量值班里，一批批出厂前的电表由你判断通过或退回重测。每一次判断，都对应一种工作态度。',
       nodes: 6
     }
   ],
@@ -100,7 +100,7 @@ module.exports = {
       title: '质量值班',
       direction: '创新驱动、技术为本',
       brief:
-        '你是计量实验室今天的质量值班员。每一批表出厂前，都要由你盖章：放行，或者退回重测。规则只有几条，但产线、销售、客户都会来敲门。',
+        '你是计量实验室今天的质量值班员。每一批表出厂前，都要由你判断：通过，或者退回重测。规则只有几条，但产线、销售、客户都会来敲门。',
       rules: [
         '阈值 ±0.5%：偏差超出阈值，必须退回重测并留档。',
         '测试记录不完整，一律退回。',
@@ -123,7 +123,7 @@ module.exports = {
             {
               id: 'release',
               stamp: 'release',
-              label: '盖章放行',
+              label: '通过',
               trust: -20,
               marks: { 务实: 1, 守正: -1 },
               flag: 'shipRisky',
@@ -132,7 +132,7 @@ module.exports = {
             {
               id: 'return',
               stamp: 'return',
-              label: '盖章退回',
+              label: '退回',
               trust: -6,
               marks: { 精进: 2 },
               flag: 'caughtEarly',
@@ -160,7 +160,7 @@ module.exports = {
             {
               id: 'refit',
               stamp: 'return',
-              label: '盖章退回：返厂重装',
+              label: '退回：返厂重装',
               trust: 8,
               marks: { 守正: 1, 精进: 1 },
               result: '重装后读数回到 +0.1%。你把这张照片加进了新员工培训案例。'
@@ -168,7 +168,7 @@ module.exports = {
             {
               id: 'observe',
               stamp: 'release',
-              label: '盖章放行：先观察',
+              label: '通过：先观察',
               trust: -12,
               marks: { 务实: -1 },
               result: '一周后同一客户再次报修，这次连通讯也断了。'
@@ -193,7 +193,7 @@ module.exports = {
             {
               id: 'process',
               stamp: 'release',
-              label: '盖章放行：按手册走',
+              label: '通过：按手册走',
               trust: -10,
               marks: { 务实: 1, 守正: -1 },
               flag: 'leftRisk',
@@ -202,7 +202,7 @@ module.exports = {
             {
               id: 'extra',
               stamp: 'return',
-              label: '盖章退回：补高温工况',
+              label: '退回：补高温工况',
               trust: 6,
               marks: { 精进: 2, 创新: 1 },
               flag: 'hotFixed',
@@ -224,7 +224,7 @@ module.exports = {
             {
               id: 'allow',
               stamp: 'release',
-              label: '盖章同意：先发',
+              label: '通过：先发货',
               trust: -15,
               marks: { 守正: -2, 务实: 1 },
               flag: 'pendingTrick',
@@ -233,7 +233,7 @@ module.exports = {
             {
               id: 'refuse',
               stamp: 'return',
-              label: '盖章拒绝：并上报',
+              label: '退回：并上报',
               trust: -5,
               marks: { 守正: 2, 精进: 1 },
               result: '销售很不高兴。三个月后审计翻账，这一页干干净净。'
@@ -258,13 +258,13 @@ module.exports = {
             body: '现场批量偏差超过 2%，两条产线停了。这批表出厂时，测试点 B 是 +2.4%。你们打算怎么处理？',
             docs: [
               { label: '现场数据', text: '已测 32 台，偏差 +2.0% ~ +2.6%，其余暂停使用' },
-              { label: '出厂记录', text: '测试点 B +2.4%，超出阈值，由你签发放行' }
+              { label: '出厂记录', text: '测试点 B +2.4%，超出阈值，由你签发通过' }
             ],
             choices: [
               {
                 id: 'own',
                 stamp: 'return',
-                label: '盖章：认下并公开复盘',
+                label: '退回：认下并公开复盘',
                 trust: -8,
                 marks: { 守正: 2, 精进: 1 },
                 result: '你们承担了更换费用，把这张记录做成了全员案例。'
@@ -272,7 +272,7 @@ module.exports = {
               {
                 id: 'blame',
                 stamp: 'release',
-                label: '盖章：归因现场环境',
+                label: '通过：归因现场环境',
                 trust: -18,
                 marks: { 守正: -2, 务实: 1 },
                 result: '客户不再争辩，但从下一批开始在别家比价。'
@@ -283,7 +283,7 @@ module.exports = {
             {
               id: 'standard',
               stamp: 'release',
-              label: '盖章：把当时的测试方法整理成标准交付',
+              label: '通过：把测试方法整理成标准交付',
               trust: 10,
               marks: { 务实: 1, 精进: 2 },
               result: '客户把这份方法写进了自己的验收要求，随后追加了订单。'
@@ -291,7 +291,7 @@ module.exports = {
             {
               id: 'routine',
               stamp: 'release',
-              label: '盖章：按常规回复交期',
+              label: '通过：按常规回复交期',
               trust: 2,
               marks: {},
               result: '订单来了，方法没留下来——下次还得从头解释一遍。'
@@ -315,7 +315,7 @@ module.exports = {
             {
               id: 'fit',
               stamp: 'release',
-              label: '盖章：双向计量 + 通讯 + 异常告警',
+              label: '通过：双向计量 + 通讯 + 异常告警',
               trust: 12,
               marks: { 创新: 2, 务实: 2 },
               result: '客户拿到了看得懂的数据，这个方案进了标杆案例。'
@@ -323,7 +323,7 @@ module.exports = {
             {
               id: 'report',
               stamp: 'release',
-              label: '盖章：双向计量 + 数据存储 + 报表',
+              label: '通过：双向计量 + 数据存储 + 报表',
               trust: 4,
               marks: { 务实: 1, 创新: 1 },
               result: '报表很漂亮，但异常发生的时候，没有人被通知。'
@@ -331,7 +331,7 @@ module.exports = {
             {
               id: 'max',
               stamp: 'release',
-              label: '盖章：六张全加，先把项目拿下',
+              label: '通过：六张全加，先把项目拿下',
               trust: -8,
               marks: { 创新: 1, 务实: -2 },
               result: '预算超了一倍，客户把项目拆成两期，第一期没给你。'

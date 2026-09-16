@@ -147,6 +147,9 @@
 .stamp {
   align-self: center;
   margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 7px 20px;
   font-size: 26px;
   font-weight: 800;
@@ -206,9 +209,15 @@
 
 .actions .stamp-button {
   width: 100%;
-  min-height: 44px;
-  font-size: 15px;
+  min-height: 46px;
+  /* 按钮有固定高度时必须自己居中，否则文字会贴在顶部 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+  font-size: 16px;
   font-weight: 600;
+  letter-spacing: 2px;
   border-radius: 14px;
 }
 

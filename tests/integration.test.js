@@ -177,7 +177,7 @@ test('值班闭环：六份材料盖章 → 文化画像 → 行动承诺', () =
   assert.equal(routes.at(-1), '/pages/culture/culture');
 });
 
-test('值班页滑动盖章：右滑放行、左滑退回，结果页不会重复盖章', () => {
+test('值班页滑动判断：右滑通过、左滑退回，结果页不会重复提交', () => {
   const { store } = setup();
   passPrologue(store);
   const shift = page('shift');

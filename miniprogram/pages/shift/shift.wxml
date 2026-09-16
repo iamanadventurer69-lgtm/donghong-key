@@ -32,7 +32,7 @@
     </view>
   </view>
   <view class="sheet" wx:else>
-    <view class="stamp {{result.stamp}}">{{result.stamp==='release'?'放行':'退回'}}</view>
+    <view class="stamp {{result.stamp}}">{{result.stamp==='release'?'通过':'退回'}}</view>
     <view class="sheet-title">{{result.label}}</view>
     <view class="delta">
       <text class="small muted">客户信任</text>
@@ -44,15 +44,15 @@
   </view>
   <view class="actions" wx:if="{{phase==='card'}}">
     <block wx:if="{{twoStamps}}">
-      <button class="stamp-button release" data-id="{{stampRelease}}" bindtap="choose">盖章放行</button>
-      <button class="stamp-button back" data-id="{{stampReturn}}" bindtap="choose">盖章退回</button>
+      <button class="stamp-button release" data-id="{{stampRelease}}" bindtap="choose">通过</button>
+      <button class="stamp-button back" data-id="{{stampReturn}}" bindtap="choose">退回</button>
     </block>
     <block wx:else>
       <button class="option" wx:for="{{card.choices}}" wx:key="id" data-id="{{item.id}}" bindtap="choose">{{item.label}}</button>
     </block>
   </view>
   <button class="primary" wx:else bindtap="next">{{last?'结束值班，看文化画像':'下一份 →'}}</button>
-  <view class="hint">{{phase==='card'?'右滑放行 · 左滑退回 · 也可以点按钮':'盖章已记录，后果会自己找上门'}}</view>
+  <view class="hint">{{phase==='card'?'右滑通过 · 左滑退回 · 也可以点按钮':'判断已记录，后果会自己找上门'}}</view>
   <view class="rules-mask" wx:if="{{rulesOpen}}" bindtap="toggleRules">
     <view class="rules" catchtap="noop">
       <view class="label">质量值班规则</view>

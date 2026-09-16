@@ -266,7 +266,11 @@ button[disabled] {
   color: #278ec4;
   width: 44px;
   height: 40px;
-  line-height: 36px;
+  /* 固定高度的按钮用 flex 居中，别用 line-height 猜 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   font-size: 29px;
   border: 1px solid #c2e3f6;
 }

@@ -8,7 +8,7 @@
     <view class="card">
       <view class="row"><text class="label">客户信任</text><text class="trust-num">{{portrait.trust}} / 100</text></view>
       <view class="progress-track"><view class="progress-fill" style="width:{{portrait.trust}}%"/></view>
-      <view class="small muted">信任值由你今天每一次盖章累积而成，不会被人工修正。</view>
+      <view class="small muted">信任值由你今天每一次判断累积而成，不会被人工修正。</view>
     </view>
     <button class="primary" bindtap="nextPanel">看我的文化画像 →</button>
   </view>

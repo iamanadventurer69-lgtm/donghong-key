@@ -1,5 +1,5 @@
 /**
- * 值班页：一屏一张事件卡，读完材料后盖章（放行 / 退回），看后果，再翻下一张。
+ * 值班页：一屏一张事件卡，读完材料后判断（通过 / 退回），看后果，再翻下一张。
  *
  * 页面不做规则判断：能不能盖、盖了值多少，都由 utils/state.js 决定；
  * 这里只负责展示材料、收集操作、把结果讲清楚。
@@ -79,7 +79,7 @@ Page({
       phase: 'result',
       result: {
         stamp: choice.stamp,
-        label: choice.label.replace(/^盖章[：:]?/, ''),
+        label: choice.label,
         text: choice.result,
         delta: choice.trust || 0,
         trust: next.trust,
@@ -93,7 +93,7 @@ Page({
   swipeStart(e) {
     this.swipeOrigin = e.touches && e.touches[0];
   },
-  /** 右滑＝放行，左滑＝退回；三选一的卡片仍用按钮。 */
+  /** 右滑＝通过，左滑＝退回（内部 id 仍是 release / return，不会影响存档）。 */
   swipeEnd(e) {
     const direction = pager.direction(this.swipeOrigin, e.changedTouches && e.changedTouches[0]);
     this.swipeOrigin = null;

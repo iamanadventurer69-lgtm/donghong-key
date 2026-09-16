@@ -1,0 +1,36 @@
+<view class="viewport">
+  <view class="topline">
+    <text class="eyebrow">MEMORY / 模块配对</text>
+    <button class="text-button" bindtap="back">返回闯关</button>
+  </view>
+  <view class="hud">
+    <view class="hud-item"><text class="hud-val">{{moves}}</text><text class="hud-lbl">步数</text></view>
+    <view class="hud-item"><text class="hud-val">{{matched}}<text class="hud-sub">/{{pairTotal}}</text></text><text class="hud-lbl">配对</text></view>
+    <view class="hud-item"><text class="hud-val">{{timeText}}</text><text class="hud-lbl">用时</text></view>
+  </view>
+  <view class="grid">
+    <view
+      wx:for="{{cards}}"
+      wx:key="index"
+      class="card {{item.up || item.done?'flipped':''}} {{item.done?'matched':''}}"
+      data-index="{{index}}"
+      bindtap="tap"
+    >
+      <view class="inner">
+        <view class="face front"><text class="logo">DH</text><text class="qmark">?</text></view>
+        <view class="face back"><text class="emoji">{{item.emoji}}</text><text class="label">{{item.face}}</text></view>
+      </view>
+    </view>
+  </view>
+  <button class="secondary" bindtap="restart">🔄 重新开始</button>
+  <view class="hint">翻开两张牌，把「名字」和它的「职责」配成一对 · 共 {{pairTotal}} 对</view>
+  <view class="mask" wx:if="{{won}}">
+    <view class="sheet">
+      <view class="win-title">🎉 记忆大师！</view>
+      <view class="win-text">全部配对成功：{{moves}} 步，用时 {{timeText}}</view>
+      <view class="win-rank">{{moves<=20?'⭐ 记忆大师':moves<=28?'👍 很不错':'💪 继续加油'}}</view>
+      <button class="primary" bindtap="back">回到闯关中心 →</button>
+      <button class="secondary" bindtap="restart">🔄 再来一局</button>
+    </view>
+  </view>
+</view>

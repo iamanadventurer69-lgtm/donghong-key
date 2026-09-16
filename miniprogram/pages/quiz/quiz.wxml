@@ -1,0 +1,46 @@
+<view class="viewport">
+  <view class="topline">
+    <text class="eyebrow">QUIZ / 知识答题</text>
+    <button class="text-button" bindtap="back">返回闯关</button>
+  </view>
+  <block wx:if="{{!finished}}">
+    <view class="dots"><view wx:for="{{dots}}" wx:key="key" class="dot {{item.state}}"/></view>
+    <view class="card">
+      <view class="q-num">第 {{index+1}} / {{total}} 题</view>
+      <view class="q-text">{{question.q}}</view>
+      <view class="q-opts">
+        <button
+          wx:for="{{question.opts}}"
+          wx:for-index="oi"
+          wx:key="*this"
+          class="option {{answered && oi===question.ans?'right':''}} {{answered && oi===chosen && chosen!==question.ans?'wrong':''}}"
+          data-index="{{oi}}"
+          bindtap="pick"
+        ><text class="letter">{{letters[oi]}}</text><text>{{item}}</text></button>
+      </view>
+      <view class="explain {{chosen===question.ans?'ok':'no'}}" wx:if="{{answered}}">{{question.explain}}</view>
+    </view>
+    <button class="primary" wx:if="{{answered}}" bindtap="next">{{index+1===total?'查看成绩 →':'下一题 →'}}</button>
+    <view class="hint" wx:else>答完每题都会给出解释，答错也会说明原因</view>
+  </block>
+  <block wx:else>
+    <view class="result">
+      <view class="result-title">🏆 答题完成！</view>
+      <view class="result-score">{{score}}</view>
+      <view class="result-lbl">总分（满分 100）</view>
+      <view class="result-rank">{{score>=80?'⭐ 文化通':score>=60?'👍 不错':'💪 再来一遍会更熟'}}</view>
+    </view>
+    <view class="review">
+      <view class="review-title">逐题回顾</view>
+      <view class="review-item" wx:for="{{review}}" wx:key="index">
+        <text class="mark">{{item.right?'✅':'❌'}}</text>
+        <view class="review-main">
+          <text class="review-q">{{item.index}}. {{item.question}}</text>
+          <text class="review-a">正确答案：{{item.answer}}</text>
+        </view>
+      </view>
+    </view>
+    <button class="secondary" bindtap="restart">🔄 重新挑战</button>
+    <button class="primary" bindtap="back">回到闯关中心 →</button>
+  </block>
+</view>

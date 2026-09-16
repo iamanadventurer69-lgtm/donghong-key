@@ -15,7 +15,9 @@
       </view>
     </view>
     <view class="card">
-      <view wx:for="{{stages}}" wx:key="name" class="stage"><text class="success">{{item.done?'✓':'○'}}</text><text>{{item.name}}</text><text class="small muted">{{item.done?'已完成':'待探索'}}</text></view>
+      <view class="row"><text>任务进度</text><text class="trust-num">{{reward.done}} / {{reward.total}}{{reward.grade?' · '+reward.grade+' 级':''}}</text></view>
+      <view class="progress-track"><view class="progress-fill" style="width:{{reward.percent}}%"/></view>
+      <view class="small muted">{{reward.next}}</view>
     </view>
     <button class="primary" bindtap="resume">{{s.completed?'回顾我的文化画像':'继续上次探索 →'}}</button>
   </view>
@@ -48,6 +50,13 @@
     <view class="culture">
       <view class="label">我的行动承诺</view>
       <view class="quote">{{s.pledge||'完成第一章后，记录你的行动承诺。'}}</view>
+    </view>
+    <view class="card">
+      <view class="label">各局成绩</view>
+      <view class="row small"><text>模块配对</text><text>{{scores.flip}}</text></view>
+      <view class="row small"><text>能量三消</text><text>{{scores.crush}}</text></view>
+      <view class="row small"><text>知识答题</text><text>{{scores.quiz}}</text></view>
+      <view class="row small"><text>客户信任</text><text>{{trust}} / 100</text></view>
     </view>
     <view class="card">进度仅保存在当前设备。清除缓存、更换设备或重新安装后无法恢复。<view class="line"/><view class="muted">本原型不采集员工身份信息。</view></view>
     <button wx:if="{{warning}}" class="secondary" bindtap="retry">重试保存</button>

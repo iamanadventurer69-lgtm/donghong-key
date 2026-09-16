@@ -4,6 +4,10 @@
     "pages/mission/mission",
     "pages/prologue/prologue",
     "pages/shift/shift",
+    "pages/quest/quest",
+    "pages/flip/flip",
+    "pages/crush/crush",
+    "pages/quiz/quiz",
     "pages/culture/culture",
     "pages/progress/progress"
   ],

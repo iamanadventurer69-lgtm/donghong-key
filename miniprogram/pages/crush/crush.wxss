@@ -1,0 +1,193 @@
+/* 能量三消：6×6 棋盘 + 计时得分条。 */
+.hud {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid #cce7f7;
+  border-radius: 14px;
+}
+
+.hud-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hud-val {
+  font:
+    700 19px Menlo,
+    monospace;
+  color: #1c7fb4;
+  line-height: 1.1;
+}
+
+.hud-lbl {
+  font-size: 10px;
+  color: #6a8ea4;
+}
+
+.board {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px;
+  background: #fff;
+  border: 2px solid #cce7f7;
+  border-radius: 18px;
+  justify-content: center;
+}
+
+.board.shake {
+  animation: shake 0.26s ease-in-out;
+}
+
+.row {
+  display: flex;
+  gap: 5px;
+  flex: 1;
+  min-height: 0;
+}
+
+.cell {
+  flex: 1;
+  min-width: 0;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  color: #fff;
+  text-shadow: 0 1px 4px #00000033;
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+
+.cell.sel {
+  border-color: #fff;
+  box-shadow: 0 0 0 3px #249fdb;
+  transform: scale(0.9);
+}
+
+.cell.pop {
+  animation: pop 0.28s ease forwards;
+}
+
+.hint {
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 10px;
+  color: #7d9cb0;
+}
+
+.mask {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: #0e3a5733;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+}
+
+.sheet {
+  width: 100%;
+  background: #fff;
+  border-radius: 20px;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: pop-up 0.28s ease-out;
+}
+
+.win-title {
+  font-size: 21px;
+  font-weight: 700;
+  color: #14547b;
+  text-align: center;
+}
+
+.win-score {
+  font:
+    900 42px Menlo,
+    monospace;
+  color: #1c7fb4;
+  text-align: center;
+  line-height: 1;
+}
+
+.win-lbl {
+  font-size: 11px;
+  color: #7d9cb0;
+  text-align: center;
+}
+
+.win-rank {
+  align-self: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1c7fb4;
+  background: #eaf7ff;
+  border-radius: 20px;
+  padding: 5px 14px;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  45% {
+    transform: scale(1.25);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  30% {
+    transform: translateX(-5px);
+  }
+  70% {
+    transform: translateX(5px);
+  }
+}
+
+@keyframes pop-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-height: 640px) {
+  .cell {
+    font-size: 16px;
+    border-radius: 8px;
+  }
+  .board {
+    gap: 4px;
+    padding: 6px;
+  }
+  .row {
+    gap: 4px;
+  }
+}

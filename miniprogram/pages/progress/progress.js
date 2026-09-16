@@ -7,17 +7,24 @@ const content = require('../../data/content');
 const store = require('../../utils/storage');
 const state = require('../../utils/state');
 
-/** 五个进度节点，用于档案页的清单。 */
-function stageList(s) {
-  const done = s.decisions.length;
-  const total = state.CARDS.length;
-  return [
-    { name: '领取使命密钥', done: s.prologueDone },
-    { name: `质量值班（已盖 ${done} / ${total} 份）`, done: done >= total },
-    { name: '世界之门 · 认证匹配', done: s.missions['2'] },
-    { name: '客户之光 · 定制方案', done: s.missions['3'] },
-    { name: '保存文化画像', done: s.completed }
-  ];
+/** 任务清单里第一条还没完成的，用来提示「接下来做什么」。 */
+function nextTask(s) {
+  const task = state.tasks(s).find((item) => !item.done);
+  return task ? `接下来：${task.name}` : '全部任务已完成 🏆';
+}
+
+/** 各局成绩的简短文案。 */
+function scoreText(s) {
+  const { flip, crush, quiz } = s.games;
+  return {
+    flip: flip.done ? `${flip.moves} 步 / ${flip.seconds} 秒` : '未完成',
+    crush: crush.done ? `${crush.score} 分` : '未完成',
+    quiz: quiz.done
+      ? `${quiz.score} 分`
+      : quiz.results.length > 0
+        ? `进行中 ${quiz.results.length} 题`
+        : '未完成'
+  };
 }
 
 Page({
@@ -33,12 +40,20 @@ Page({
   sync() {
     const s = store.read();
     const portrait = state.portrait(s);
+    const taskProgress = state.taskProgress(s);
     this.setData({
       s,
       percent: state.percent(s),
       warning: store.warning(),
       updated: s.updatedAt ? new Date(s.updatedAt).toLocaleString() : '还未开始',
-      stages: stageList(s),
+      reward: {
+        done: taskProgress.done,
+        total: taskProgress.total,
+        percent: Math.round((taskProgress.done / taskProgress.total) * 100),
+        next: nextTask(s),
+        grade: state.allDone(s) ? state.grade(s).code : ''
+      },
+      scores: scoreText(s),
       trust: s.trust,
       marks: state.MARKS.map((name) => ({ name, value: s.marks[name] || 0 })),
       style: portrait.style,

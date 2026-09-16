@@ -32,13 +32,18 @@ Page({
     const s = store.read();
     const done = s.decisions.length;
     const total = state.CARDS.length;
+    const progress = state.taskProgress(s);
     this.setData({
       s,
       percent: state.percent(s),
       active: litNodes(s),
       warning: store.warning(),
       cta: primaryLabel(s),
-      shiftTag: s.completed || done >= total ? '已点亮' : done > 0 ? `${done} / ${total}` : '可探索'
+      shiftTag:
+        s.completed || done >= total ? '已点亮' : done > 0 ? `${done} / ${total}` : '可探索',
+      questTag: progress.done >= progress.total ? '已通关' : `${progress.done} / ${progress.total}`,
+      questDone: progress.done,
+      questTotal: progress.total
     });
   },
   start() {
@@ -49,5 +54,8 @@ Page({
   },
   progress() {
     wx.navigateTo({ url: '/pages/progress/progress' });
+  },
+  quest() {
+    wx.navigateTo({ url: '/pages/quest/quest' });
   }
 });

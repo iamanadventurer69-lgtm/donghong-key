@@ -12,7 +12,7 @@
     <button class="primary" bindtap="start">{{cta}} ↗</button>
   </view>
   <view class="panel" wx:elif="{{panel===1}}">
-    <view class="title">一段旅程，<view>三种能力。</view></view>
+    <view class="title">一段旅程，<view>四种玩法。</view></view>
     <button class="card chapter-card stage-button" bindtap="start">
       <view class="chapter-head">
         <text class="number">01</text>
@@ -39,6 +39,15 @@
       </view>
       <view class="muted">行业聚焦、定制化方案</view>
       <view class="small muted">NPC 对话 · 场景方案</view>
+    </button>
+    <button class="card chapter-card stage-button" bindtap="quest">
+      <view class="chapter-head">
+        <text class="number">04</text>
+        <text class="section-title">闯关挑战</text>
+        <text class="tag">{{questTag}}</text>
+      </view>
+      <view class="muted">打卡答题 · 三个小游戏</view>
+      <view class="small muted">任务 {{questDone}} / {{questTotal}}</view>
     </button>
   </view>
   <view class="panel" wx:else>

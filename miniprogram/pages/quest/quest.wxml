@@ -1,0 +1,82 @@
+<view class="viewport">
+  <view class="topline">
+    <text class="eyebrow">CHALLENGE ZONE / 闯关中心</text>
+    <button class="text-button" bindtap="home">首页</button>
+  </view>
+  <view class="hud">
+    <view class="row">
+      <text class="label">任务进度</text>
+      <text class="hud-num">{{progress.done}} / {{progress.total}}</text>
+    </view>
+    <view class="track">
+      <view class="track-fill" style="width:{{scoreboard.grade ? 100 : progress.done * 100 / progress.total}}%"/>
+    </view>
+    <view class="row small muted">
+      <text>主线进度 {{percent}}%</text>
+      <text wx:if="{{grade}}">{{grade.code}} 级</text>
+    </view>
+  </view>
+  <view class="rail">
+    <button
+      wx:for="{{tasks}}"
+      wx:key="id"
+      class="task {{item.done?'done':''}}"
+      data-id="{{item.id}}"
+      bindtap="openTask"
+    >
+      <text class="task-icon">{{item.icon}}</text>
+      <text class="task-name">{{item.name}}</text>
+      <view class="task-foot">
+        <text class="task-kind">{{item.kind==='checkin'?'打卡':item.kind==='game'?'小游戏':'剧情'}}</text>
+        <text class="task-score" wx:if="{{item.score}}">· {{item.score}}</text>
+        <text class="task-state">{{item.done?'✓':'›'}}</text>
+      </view>
+    </button>
+  </view>
+  <button class="primary" disabled="{{!allDone}}" bindtap="openFinal">{{allDone?'查看通关结算 🏆':'任务全部完成后解锁结算'}}</button>
+  <view class="save-warning" wx:if="{{warning}}">{{warning}}</view>
+  <view class="mask" wx:if="{{questOpen}}">
+    <view class="sheet">
+      <view class="badge">{{quest.badge}}</view>
+      <view class="sheet-title">{{quest.title}}</view>
+      <view class="sheet-q">{{quest.question}}</view>
+      <button
+        wx:for="{{quest.options}}"
+        wx:key="*this"
+        class="option {{picked && index===quest.answer?'right':''}} {{picked && index===choice && !right?'wrong':''}}"
+        data-index="{{index}}"
+        bindtap="pick"
+      ><text class="letter">{{index===0?'A':index===1?'B':index===2?'C':'D'}}</text><text>{{item}}</text></button>
+      <view class="explain {{right?'ok':'no'}}" wx:if="{{picked}}">{{quest.explain}}</view>
+      <button class="primary" wx:if="{{picked && right}}" bindtap="closeQuest">打卡成功，继续闯关 →</button>
+      <button class="secondary" wx:if="{{picked && !right}}" bindtap="restart">再试一次</button>
+    </view>
+  </view>
+  <view class="mask" wx:if="{{finalOpen}}">
+    <view class="sheet final">
+      <view class="final-title">🏆 东鸿密钥 · 全部通关！</view>
+      <view class="small muted">你完成了全部探索任务</view>
+      <view class="final-tasks">
+        <view class="final-task" wx:for="{{tasks}}" wx:key="id">
+          <text>{{item.icon}} {{item.name}}</text>
+          <text class="final-state">{{item.done?'✅':'⬜'}}</text>
+        </view>
+      </view>
+      <view class="final-scores">
+        <view class="final-score"><text class="final-val">{{scoreboard.trust}}</text><text class="final-lbl">客户信任</text></view>
+        <view class="final-score"><text class="final-val">{{scoreboard.flip.moves}}</text><text class="final-lbl">配对步数</text></view>
+        <view class="final-score"><text class="final-val">{{scoreboard.crush.score}}</text><text class="final-lbl">三消得分</text></view>
+        <view class="final-score"><text class="final-val">{{scoreboard.quiz.score}}</text><text class="final-lbl">答题分数</text></view>
+      </view>
+      <view class="final-detail">
+        <view class="detail-title">📝 知识答题（{{scoreboard.quiz.correct}} / {{scoreboard.quiz.total}} 题正确）</view>
+        <view class="detail-row"><text>配对用时</text><text>{{scoreboard.flip.seconds}} 秒</text></view>
+        <view class="detail-row"><text>三消评价</text><text>{{scoreboard.crush.score>=300?'⭐ 手速大师':scoreboard.crush.score>=150?'👍 不错':'💪 再接再厉'}}</text></view>
+        <view class="detail-row"><text>最高印记</text><text>{{grade.code}} 级 · 信任 {{scoreboard.trust}}</text></view>
+      </view>
+      <view class="grade" style="background:{{grade.color}}">GRADE {{grade.code}}</view>
+      <view class="small muted final-msg">{{grade.comment}}</view>
+      <button class="primary" bindtap="closeFinal">🎉 太棒了，关闭</button>
+    </view>
+  </view>
+</view>

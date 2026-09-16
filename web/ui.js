@@ -116,9 +116,18 @@ window.DHKApp = window.DHKApp || {};
     else App.go('#/home');
   };
 
+  /** 宽屏（桌面）判定：pagedView 用它决定「一次显示一屏」还是「全部铺开」。 */
+  App.isWide = function isWide() {
+    return window.innerWidth >= 900;
+  };
+
   App.render = function render() {
     const hash = location.hash || '#/home';
     const view = App.views[hash] || App.views['#/home'];
+    // 外壳上挂当前页面的类名，构建出来的 CSS 就是按 .page-xxx 作用域隔开的
+    const name = hash.replace(/^#\/?/, '').split('/')[0] || 'home';
+    const shell = root();
+    if (shell) shell.className = `app-shell viewport page page-${name}`;
     view();
   };
 

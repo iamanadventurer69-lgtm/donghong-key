@@ -10,7 +10,8 @@
 | 规则与文案 | `data/content.js`、`utils/state.js`、`utils/match3.js` | **同一份代码**（构建时打包进 `web/bundle.js`） |
 | 存档 | 微信 Storage | 浏览器 localStorage（同一个键、同一套清洗规则） |
 | 页面 | 14 个 WXML 页面 | 14 个 hash 路由（`#/home`…`#/progress`） |
-| 样式 | 各页 WXSS | 由 WXSS 转译生成 `web/styles.css`，两端视觉一致 |
+| 样式 | 各页 WXSS | 由 WXSS 转译生成 `web/styles.css`，按 `.page-xxx` 作用域隔离，两端视觉一致 |
+| 布局 | 固定视窗 + 左右翻页 | 窄屏同为翻页式；**≥900px 自动切换桌面布局**（首页/画像/档案三栏并排、值班左材料右状态、棋盘居中限宽），不再套手机窄框 |
 
 网页版这样跑起来：
 

@@ -96,20 +96,69 @@ function portWxss(source) {
     .replace(/:host/g, '.component-host');
 }
 
+/**
+ * 把一页的 CSS 限定在它的页面容器下。
+ *
+ * 小程序里每个页面的 WXSS 只加载到那个页面，所以各页可以重复使用 .back /
+ * .option / .card 这些类名；合并成一份网页 CSS 就会互相污染（典型：翻牌页的
+ * .back{rotateY(180deg)} 把值班页的「退回」按钮翻了个面）。
+ * 这里给每条顶层规则加作用域前缀，@media 递归处理，@keyframes 原样保留。
+ */
+function scopeCss(source, scope) {
+  const cleaned = source.replace(/\/\*[\s\S]*?\*\//g, '');
+  const prefix = (selectors) =>
+    selectors
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .map((item) => `${scope} ${item}`)
+      .join(', ');
+
+  let out = '';
+  let i = 0;
+  while (i < cleaned.length) {
+    const open = cleaned.indexOf('{', i);
+    if (open === -1) {
+      out += cleaned.slice(i);
+      break;
+    }
+    const selector = cleaned.slice(i, open).trim();
+    let depth = 1;
+    let j = open + 1;
+    while (j < cleaned.length && depth > 0) {
+      if (cleaned[j] === '{') depth += 1;
+      else if (cleaned[j] === '}') depth -= 1;
+      j += 1;
+    }
+    const body = cleaned.slice(open + 1, j - 1);
+    if (/^@(media|supports|container|layer)/.test(selector)) {
+      out += `${selector} {\n${scopeCss(body, scope)}}\n`;
+    } else if (selector.startsWith('@')) {
+      out += `${selector} {${body}}\n`;
+    } else {
+      out += `${prefix(selector)} {${body}}\n`;
+    }
+    i = j;
+  }
+  return out;
+}
+
 function generateStyles() {
   const files = [
-    'app.wxss',
-    'components/energy-network/energy-network.wxss',
-    'components/live-meter/live-meter.wxss',
+    { file: 'app.wxss', scope: null },
+    { file: 'components/energy-network/energy-network.wxss', scope: '.component-host' },
+    { file: 'components/live-meter/live-meter.wxss', scope: '.component-host' },
     ...fs
       .readdirSync(path.join(mini, 'pages'))
       .sort()
-      .map((page) => `pages/${page}/${page}.wxss`)
-  ].filter((file) => fs.existsSync(path.join(mini, file)));
+      .map((page) => ({ file: `pages/${page}/${page}.wxss`, scope: `.page-${page}` }))
+  ].filter((entry) => fs.existsSync(path.join(mini, entry.file)));
 
-  const chunks = files.map(
-    (file) => `/* ==== ${file} ==== */\n${portWxss(fs.readFileSync(path.join(mini, file), 'utf8'))}`
-  );
+  const chunks = files.map(({ file, scope }) => {
+    const ported = portWxss(fs.readFileSync(path.join(mini, file), 'utf8'));
+    const head = `/* ==== ${file}${scope ? ` → ${scope}` : ''} ==== */`;
+    return `${head}\n${scope ? scopeCss(ported, scope) : ported}`;
+  });
   const out = `/* 由 tools/build-web.mjs 生成，不要手改。来源：miniprogram 的 WXSS */\n${chunks.join('\n')}\n`;
   return { content: out, files: files.length, bytes: Buffer.byteLength(out) };
 }

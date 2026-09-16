@@ -49,7 +49,12 @@
     };
     App.register(name, () => {
       if (config.initial) panel = Math.max(0, Math.min(config.count - 1, config.initial()));
-      const html = config.render(panel, { go });
+      // 桌面端：所有屏一次铺开（省掉翻页），窄屏仍是一屏一屏翻
+      const wide = App.isWide() && config.wideAll !== false;
+      const indexes = wide ? Array.from({ length: config.count }, (_, i) => i) : [panel];
+      const panels = indexes.map((i) => config.render(i, { go, wide })).filter(Boolean);
+      if (panels.length === 0) return;
+      const html = panels.join('\n') + (wide ? '' : App.pager(panel, config.count, config.label));
       if (!html) return;
       App.mount(html, (root) => {
         App.swipe(root, { next: () => go(panel + 1), prev: () => go(panel - 1) });
@@ -71,7 +76,7 @@
   /* ==================== 首页 ==================== */
   pagedView('#/home', {
     count: 3,
-    render(panel) {
+    render(panel, options = {}) {
       const s = store().read();
       const percent = state.percent(s);
       const progress = state.taskProgress(s);
@@ -79,10 +84,15 @@
       const ids = ['hop', 'flip', 'crush', 'quiz', 'repro'];
       const finished = ids.filter((id) => (id === 'hop' ? s.games.hop.done : s.games[id].done));
       const cta = s.completed ? '回顾我的文化画像' : s.updatedAt ? '继续探索' : '开启文化探索';
-      const head = `<div class="topline"><span class="eyebrow">EASTRON / CULTURE QUEST</span><span class="pill">文化探索员</span></div>`;
+      // 宽屏是三栏并排，顶栏与存档提示只在第一栏出现
+      const first = !options.wide || panel === 0;
+      const head = !first
+        ? ''
+        : `<div class="topline"><span class="eyebrow">EASTRON / CULTURE QUEST</span><span class="pill">文化探索员</span></div>`;
+      const warn = first ? App.warning() : '';
 
       if (panel === 1) {
-        return `${head}${App.warning()}
+        return `${head}${warn}
           <div class="panel">
             <div class="title">一段旅程，<div>两个入口。</div></div>
             <button class="card chapter-card stage-button" data-action="culture">
@@ -101,12 +111,11 @@
               <div class="muted">跳格子 · 配对 · 三消 · 答题 · 实验台</div>
               <div class="small muted">${cultureDone ? '成绩计入通关结算' : '先完成企业文化模块'}</div>
             </button>
-          </div>
-          ${App.pager(1, 3)}`;
+          </div>`;
       }
 
       if (panel === 2) {
-        return `${head}${App.warning()}
+        return `${head}${warn}
           <div class="panel">
             <div class="title">我们的方向</div>
             <div class="card">
@@ -121,11 +130,10 @@
               <div class="small muted">${esc(content.company)}</div>
             </div>
             <button class="primary" data-action="progress">查看探索档案</button>
-          </div>
-          ${App.pager(2, 3)}`;
+          </div>`;
       }
 
-      return `${head}${App.warning()}
+      return `${head}${warn}
         <div class="panel">
           <div>
             <div class="subtitle">每一度电背后，都有一个答案。</div>
@@ -135,8 +143,7 @@
           <div class="network-space"><canvas id="hero-network"></canvas></div>
           <div class="culture"><div class="label">我们的使命</div><div class="quote">${esc(content.culture.mission)}</div></div>
           <button class="primary" data-action="start">${cta} ↗</button>
-        </div>
-        ${App.pager(0, 3)}`;
+        </div>`;
     },
     mount(root, panel) {
       if (panel !== 0) return;
@@ -157,13 +164,16 @@
   /* ==================== 序章 ==================== */
   pagedView('#/prologue', {
     count: 3,
+    // 序章是按顺序讲的，宽屏也保持一屏一屏翻（其它三页在桌面端会一次铺开）
+    wideAll: false,
     initial: () => store().read().prologue,
     onPanel: (panel) => store().write({ ...store().read(), prologue: panel }),
-    render(panel) {
+    render(panel, options = {}) {
       const scene = content.prologue[panel];
+      const first = !options.wide || panel === 0;
       return `
-        <div class="topline"><span class="eyebrow">PROLOGUE / 一度电的旅程</span></div>
-        ${App.warning()}
+        ${first ? '<div class="topline"><span class="eyebrow">PROLOGUE / 一度电的旅程</span></div>' : ''}
+        ${first ? App.warning() : ''}
         <div class="panel">
           <div>
             <div class="label">${esc(scene.tag)}</div>
@@ -173,8 +183,7 @@
           <div class="narration">${esc(scene.text)}</div>
           <div class="culture"><div class="label">这是东鸿的使命</div><div class="quote">${esc(content.culture.mission)}</div></div>
           <button class="primary" data-action="mission">${panel === 2 ? '领取使命密钥，进入第一章' : '追踪下一段能量 →'}</button>
-        </div>
-        ${App.pager(panel, 3)}`;
+        </div>`;
     },
     mount(root, panel) {
       App.network(document.getElementById('prologue-network'), () => content.prologue[panel].nodes);
@@ -317,14 +326,15 @@
   /* ==================== 文化画像 ==================== */
   pagedView('#/culture', {
     count: 3,
-    render(panel) {
+    render(panel, options = {}) {
       const s = store().read();
+      const first = !options.wide || panel === 0;
       if (!state.shiftDone(s)) {
         queueMicrotask(() => App.goRoute(state.route(s)));
         return '';
       }
       const portrait = state.portrait(s);
-      const head = App.topbar('SHIFT REPORT / 值班结算');
+      const head = first ? App.topbar('SHIFT REPORT / 值班结算') : '';
       const markRows = portrait.ranked
         .map(
           (item) => `<div class="mark-row">
@@ -336,7 +346,7 @@
         .join('');
 
       if (panel === 1) {
-        return `${head}${App.warning()}
+        return `${head}${first ? App.warning() : ''}
           <div class="panel">
             <div class="title">你的文化画像</div>
             <div class="card"><div class="label">印记构成</div>${markRows}</div>
@@ -355,12 +365,11 @@
                 .join('')}
             </div>
             <button class="primary" data-action="next">选择我的行动承诺 →</button>
-          </div>
-          ${App.pager(1, 3)}`;
+          </div>`;
       }
 
       if (panel === 2) {
-        return `${head}${App.warning()}
+        return `${head}${first ? App.warning() : ''}
           <div class="panel">
             <div class="title">把文化带回工作</div>
             <div class="subtitle">选一项行动，保存你的文化画像。</div>
@@ -376,11 +385,10 @@
               <button class="text-button" data-action="progress">探索档案</button>
               <button class="text-button" data-action="home">返回首页</button>
             </div>
-          </div>
-          ${App.pager(2, 3)}`;
+          </div>`;
       }
 
-      return `${head}${App.warning()}
+      return `${head}${first ? App.warning() : ''}
         <div class="panel">
           <div class="seal"><div class="seal-core">${portrait.trust}</div></div>
           <div class="title center">${esc(portrait.level.label)}</div>
@@ -391,8 +399,7 @@
             <div class="small muted">信任值由你今天每一次判断累积而成，不会被人工修正。</div>
           </div>
           <button class="primary" data-action="next">看我的文化画像 →</button>
-        </div>
-        ${App.pager(0, 3)}`;
+        </div>`;
     },
     action(action, hit, api) {
       const s = store().read();
@@ -409,13 +416,14 @@
   /* ==================== 探索档案 ==================== */
   pagedView('#/progress', {
     count: 4,
-    render(panel) {
+    render(panel, options = {}) {
       const s = store().read();
+      const first = !options.wide || panel === 0;
       const portrait = state.portrait(s);
       const progress = state.taskProgress(s);
       const nextTask = state.tasks(s).find((task) => !task.done);
       const percent = state.percent(s);
-      const head = App.topbar('EXPLORER ARCHIVE / 探索档案');
+      const head = first ? App.topbar('EXPLORER ARCHIVE / 探索档案') : '';
       const marks = state.MARKS.map((name) => {
         const value = s.marks[name] || 0;
         return `<span class="mark ${value > 0 ? 'good' : ''} ${value < 0 ? 'bad' : ''}">${name} ${value > 0 ? '+' : ''}${value}</span>`;
@@ -449,8 +457,7 @@
               <div class="label">发展导向</div>
               ${content.culture.directions.map((item) => `<div class="direction">${esc(item)}</div>`).join('')}
             </div>
-          </div>
-          ${App.pager(1, 4)}`;
+          </div>`;
       }
 
       if (panel === 2) {
@@ -463,8 +470,7 @@
                   `<div class="card"><div class="tag">${esc(value.name)}</div><div class="muted">${esc(value.text)}</div></div>`
               )
               .join('')}
-          </div>
-          ${App.pager(2, 4)}`;
+          </div>`;
       }
 
       if (panel === 3) {
@@ -487,11 +493,10 @@
             <div class="card">进度只保存在当前浏览器。清除缓存或换设备后无法恢复。<div class="line"></div><div class="muted">本原型不采集员工身份信息。</div></div>
             <button class="secondary" data-action="reset">清除本机存档，重新探索</button>
             <button class="primary" data-action="home">返回首页</button>
-          </div>
-          ${App.pager(3, 4)}`;
+          </div>`;
       }
 
-      return `${head}${App.warning()}
+      return `${head}${first ? App.warning() : ''}
         <div class="panel">
           <div class="title">每一步，都留下印记。</div>
           <div class="card">
@@ -509,8 +514,7 @@
             <div class="small muted">${nextTask ? '接下来：' + esc(nextTask.name) : '全部任务已完成 🏆'}</div>
           </div>
           <button class="primary" data-action="resume">${s.completed ? '回顾我的文化画像' : '继续上次探索 →'}</button>
-        </div>
-        ${App.pager(0, 4)}`;
+        </div>`;
     },
     action(action) {
       const s = store().read();

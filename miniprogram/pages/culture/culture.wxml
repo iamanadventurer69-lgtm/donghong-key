@@ -1,5 +1,54 @@
-<view class="viewport" bindtouchstart="swipeStart" bindtouchend="swipeEnd" bindtouchcancel="swipeCancel"><view class="topline"><text class="eyebrow">CULTURE IMPRINT / 文化印记</text></view><view wx:if="{{warning}}" class="save-warning">{{warning}}</view>
-<view class="panel" wx:if="{{panel===0}}"><view class="seal"><view class="seal-core">芯</view></view><view class="title center">技术之芯，已点亮。</view><view class="culture"><view class="label">记住本章的方向</view><view class="quote">创新驱动、技术为本</view></view><view class="card"><view class="label">创新</view><view class="quote">需求在变化，答案也要不断进化。</view><view class="muted">你组合双向计量与通讯能力，回应客户的新需求。</view></view><button class="primary" bindtap="nextPanel">回顾你的技术选择 →</button></view>
-<view class="panel" wx:elif="{{panel===1}}"><view class="title">能用不是终点，<view>更好才是目标。</view></view><view class="card"><view class="label">精进</view><view class="quote">发现异常 → 追溯 → 校准 → 复测</view><view class="line"/><view>你没有忽略 +2.4% 的异常，而是让每一次改进都有验证。</view></view><view class="culture"><view class="label">技术创造客户价值</view><view class="quote">{{culture.belief}}</view></view><view class="subtitle">向着“{{culture.vision}}”持续前进。</view><button class="primary" bindtap="nextPanel">选择我的工作行动 →</button></view>
-<view class="panel" wx:else><view class="title">把文化带回工作</view><view class="subtitle">选择一项行动，保存本章印记。</view><view><button wx:for="{{actions}}" wx:key="*this" class="option {{selected===item?'selected':''}}" data-value="{{item}}" bindtap="choose">{{selected===item?'◉':'○'}} {{item}}</button></view><view class="small success" wx:if="{{s.completed}}">✓ 第一阶段已完成，行动承诺已记录。</view><button class="primary" disabled="{{!selected}}" bindtap="save">{{s.completed?'更新行动承诺':'保存承诺，完成第一章'}}</button><view class="row"><button class="text-button" bindtap="progress">探索档案</button><button class="text-button" bindtap="home">返回首页</button></view></view>
-<view class="pager"><button class="nav-arrow" bindtap="prevPanel" disabled="{{panel===0}}">‹</button><view class="pager-center"><view class="dots"><text wx:for="{{panelCount}}" wx:key="*this" class="dot {{index===panel?'active':''}}"/></view><text>左右滑动翻页 · {{panel+1}} / {{panelCount}}</text></view><button class="nav-arrow" bindtap="nextPanel" disabled="{{panel===panelCount-1}}">›</button></view></view>
+<view class="viewport" bindtouchstart="swipeStart" bindtouchend="swipeEnd" bindtouchcancel="swipeCancel">
+  <view class="topline"><text class="eyebrow">CULTURE IMPRINT / 文化印记</text></view>
+  <view wx:if="{{warning}}" class="save-warning">{{warning}}</view>
+  <view class="panel" wx:if="{{panel===0}}">
+    <view class="seal"><view class="seal-core">芯</view></view>
+    <view class="title center">技术之芯，已点亮。</view>
+    <view class="culture"><view class="label">记住本章的方向</view><view class="quote">创新驱动、技术为本</view></view>
+    <view class="card">
+      <view class="label">创新</view>
+      <view class="quote">需求在变化，答案也要不断进化。</view>
+      <view class="muted">你组合双向计量与通讯能力，回应客户的新需求。</view>
+    </view>
+    <button class="primary" bindtap="nextPanel">回顾你的技术选择 →</button>
+  </view>
+  <view class="panel" wx:elif="{{panel===1}}">
+    <view class="title">能用不是终点，<view>更好才是目标。</view></view>
+    <view class="card">
+      <view class="label">精进</view>
+      <view class="quote">发现异常 → 追溯 → 校准 → 复测</view>
+      <view class="line"/>
+      <view>你没有忽略 +2.4% 的异常，而是让每一次改进都有验证。</view>
+    </view>
+    <view class="culture"><view class="label">技术创造客户价值</view><view class="quote">{{culture.belief}}</view></view>
+    <view class="subtitle">向着“{{culture.vision}}”持续前进。</view>
+    <button class="primary" bindtap="nextPanel">选择我的工作行动 →</button>
+  </view>
+  <view class="panel" wx:else>
+    <view class="title">把文化带回工作</view>
+    <view class="subtitle">选择一项行动，保存本章印记。</view>
+    <view>
+      <button
+        wx:for="{{actions}}"
+        wx:key="*this"
+        class="option {{selected===item?'selected':''}}"
+        data-value="{{item}}"
+        bindtap="choose"
+      >{{selected===item?'◉':'○'}} {{item}}</button>
+    </view>
+    <view class="small success" wx:if="{{s.completed}}">✓ 第一阶段已完成，行动承诺已记录。</view>
+    <button class="primary" disabled="{{!selected}}" bindtap="save">{{s.completed?'更新行动承诺':'保存承诺，完成第一章'}}</button>
+    <view class="row">
+      <button class="text-button" bindtap="progress">探索档案</button>
+      <button class="text-button" bindtap="home">返回首页</button>
+    </view>
+  </view>
+  <view class="pager">
+    <button class="nav-arrow" bindtap="prevPanel" disabled="{{panel===0}}">‹</button>
+    <view class="pager-center">
+      <view class="dots"><text wx:for="{{panelCount}}" wx:key="*this" class="dot {{index===panel?'active':''}}"/></view>
+      <text>左右滑动翻页 · {{panel+1}} / {{panelCount}}</text>
+    </view>
+    <button class="nav-arrow" bindtap="nextPanel" disabled="{{panel===panelCount-1}}">›</button>
+  </view>
+</view>

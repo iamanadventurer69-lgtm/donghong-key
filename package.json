@@ -5,6 +5,12 @@
   "description": "东鸿企业文化原生微信小程序",
   "scripts": {
     "test": "node --test tests/*.test.js",
-    "check": "node tests/check.js"
+    "check": "node tests/check.js",
+    "format": "prettier --write . && node tools/format-wxml.mjs",
+    "format:check": "prettier --check . && node tools/format-wxml.mjs --check",
+    "verify": "npm run format:check && npm run check && npm test"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6"
   }
 }

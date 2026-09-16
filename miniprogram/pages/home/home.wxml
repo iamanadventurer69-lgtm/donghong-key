@@ -1,5 +1,65 @@
-<view class="viewport" bindtouchstart="swipeStart" bindtouchend="swipeEnd" bindtouchcancel="swipeCancel"><view class="topline"><text class="eyebrow">EASTRON / CULTURE QUEST</text><text class="pill">文化探索员</text></view><view wx:if="{{warning}}" class="save-warning">{{warning}}</view>
-<view class="panel" wx:if="{{panel===0}}"><view><view class="subtitle">每一度电背后，都有一个答案。</view><view class="hero-title">东鸿密钥<text>·</text></view><view class="hero-sub">点亮每一度电</view></view><view class="network-space"><energy-network active="{{active}}"/></view><view class="culture"><view class="label">我们的使命</view><view class="quote">{{culture.mission}}</view></view><button class="primary" bindtap="start">{{cta}} ↗</button></view>
-<view class="panel" wx:elif="{{panel===1}}"><view class="title">一段旅程，<view>三种能力。</view></view><button class="card chapter-card stage-button" bindtap="start"><text class="number">01</text><view><view class="section-title">技术之芯</view><view class="muted">创新驱动、技术为本</view></view><text class="tag">{{s.completed?'已点亮':'可探索'}}</text></button><button class="card chapter-card stage-button" data-stage="2" bindtap="openMission"><text class="number">02</text><view><view class="section-title">世界之门</view><view class="muted">国际认证、全球布局</view><view class="small muted">NPC 对话 · 认证匹配</view></view><text class="tag">{{s.missions['2']?'已点亮':'进入'}}</text></button><button class="card chapter-card stage-button" data-stage="3" bindtap="openMission"><text class="number">03</text><view><view class="section-title">客户之光</view><view class="muted">行业聚焦、定制化方案</view><view class="small muted">NPC 对话 · 场景方案</view></view><text class="tag">{{s.missions['3']?'已点亮':'进入'}}</text></button></view>
-<view class="panel" wx:else><view class="title">我们的方向</view><view class="card"><view class="label">愿景</view><view class="quote">{{culture.vision}}</view><view class="line"/><view class="label">理念</view><view class="quote">{{culture.belief}}</view></view><view class="values"><text wx:for="{{culture.values}}" wx:key="name">{{item.name}}</text></view><view class="card"><view class="row"><text>第一阶段进度</text><text>{{percent}}%</text></view><view class="progress-track"><view class="progress-fill" style="width:{{percent}}%"/></view><view class="small muted">{{company}}</view></view><button class="primary" bindtap="progress">查看探索档案</button></view>
-<view class="pager"><button class="nav-arrow" bindtap="prevPanel" disabled="{{panel===0}}">‹</button><view class="pager-center"><view class="dots"><text wx:for="{{panelCount}}" wx:key="*this" class="dot {{index===panel?'active':''}}"/></view><text>左右滑动翻页 · {{panel+1}} / {{panelCount}}</text></view><button class="nav-arrow" bindtap="nextPanel" disabled="{{panel===panelCount-1}}">›</button></view></view>
+<view class="viewport" bindtouchstart="swipeStart" bindtouchend="swipeEnd" bindtouchcancel="swipeCancel">
+  <view class="topline"><text class="eyebrow">EASTRON / CULTURE QUEST</text><text class="pill">文化探索员</text></view>
+  <view wx:if="{{warning}}" class="save-warning">{{warning}}</view>
+  <view class="panel" wx:if="{{panel===0}}">
+    <view>
+      <view class="subtitle">每一度电背后，都有一个答案。</view>
+      <view class="hero-title">东鸿密钥<text>·</text></view>
+      <view class="hero-sub">点亮每一度电</view>
+    </view>
+    <view class="network-space"><energy-network active="{{active}}"/></view>
+    <view class="culture"><view class="label">我们的使命</view><view class="quote">{{culture.mission}}</view></view>
+    <button class="primary" bindtap="start">{{cta}} ↗</button>
+  </view>
+  <view class="panel" wx:elif="{{panel===1}}">
+    <view class="title">一段旅程，<view>三种能力。</view></view>
+    <button class="card chapter-card stage-button" bindtap="start">
+      <text class="number">01</text>
+      <view><view class="section-title">技术之芯</view><view class="muted">创新驱动、技术为本</view></view>
+      <text class="tag">{{s.completed?'已点亮':'可探索'}}</text>
+    </button>
+    <button class="card chapter-card stage-button" data-stage="2" bindtap="openMission">
+      <text class="number">02</text>
+      <view>
+        <view class="section-title">世界之门</view>
+        <view class="muted">国际认证、全球布局</view>
+        <view class="small muted">NPC 对话 · 认证匹配</view>
+      </view>
+      <text class="tag">{{s.missions['2']?'已点亮':'进入'}}</text>
+    </button>
+    <button class="card chapter-card stage-button" data-stage="3" bindtap="openMission">
+      <text class="number">03</text>
+      <view>
+        <view class="section-title">客户之光</view>
+        <view class="muted">行业聚焦、定制化方案</view>
+        <view class="small muted">NPC 对话 · 场景方案</view>
+      </view>
+      <text class="tag">{{s.missions['3']?'已点亮':'进入'}}</text>
+    </button>
+  </view>
+  <view class="panel" wx:else>
+    <view class="title">我们的方向</view>
+    <view class="card">
+      <view class="label">愿景</view>
+      <view class="quote">{{culture.vision}}</view>
+      <view class="line"/>
+      <view class="label">理念</view>
+      <view class="quote">{{culture.belief}}</view>
+    </view>
+    <view class="values"><text wx:for="{{culture.values}}" wx:key="name">{{item.name}}</text></view>
+    <view class="card">
+      <view class="row"><text>第一阶段进度</text><text>{{percent}}%</text></view>
+      <view class="progress-track"><view class="progress-fill" style="width:{{percent}}%"/></view>
+      <view class="small muted">{{company}}</view>
+    </view>
+    <button class="primary" bindtap="progress">查看探索档案</button>
+  </view>
+  <view class="pager">
+    <button class="nav-arrow" bindtap="prevPanel" disabled="{{panel===0}}">‹</button>
+    <view class="pager-center">
+      <view class="dots"><text wx:for="{{panelCount}}" wx:key="*this" class="dot {{index===panel?'active':''}}"/></view>
+      <text>左右滑动翻页 · {{panel+1}} / {{panelCount}}</text>
+    </view>
+    <button class="nav-arrow" bindtap="nextPanel" disabled="{{panel===panelCount-1}}">›</button>
+  </view>
+</view>

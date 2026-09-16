@@ -1,1 +1,4 @@
-<view class="network"><canvas type="2d" id="network" class="canvas" aria-label="能源网络示意图"/><view class="network-caption"><text>ENERGY NETWORK</text><text>{{active}} / 6 节点点亮</text></view></view>
+<view class="network">
+  <canvas type="2d" id="network" class="canvas" aria-label="能源网络示意图"/>
+  <view class="network-caption"><text>ENERGY NETWORK</text><text>{{active}} / 6 节点点亮</text></view>
+</view>

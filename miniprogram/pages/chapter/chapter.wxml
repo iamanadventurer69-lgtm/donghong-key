@@ -1,10 +1,155 @@
-<view class="viewport" bindtouchstart="swipeStart" bindtouchend="swipeEnd" bindtouchcancel="swipeCancel"><view class="topline"><text class="eyebrow">CHAPTER 01 / 技术之芯</text><button class="text-button" bindtap="home">首页</button></view><view wx:if="{{warning}}" class="save-warning">{{warning}}</view><view class="culture chapter-culture"><view class="quote">创新驱动、技术为本</view><view class="label">创新 / 精进 · {{chapter.steps[s.step]}}</view></view>
-<view class="panel chapter-panel" wx:if="{{panel===0}}"><view class="title">从一块电表，<view>看见技术的价值。</view></view><view class="meter-hero"><view>EASTRON / 教学原型</view><view class="meter-screen"><view class="meter-digits">0000.00</view><text>ENERGY / kWh</text></view><view>●　 ●　 ●　 ●</view></view><view class="subtitle">把能源变化变成可信的数据。<view>用技术回应需求，让改进经过验证。</view></view><button class="primary" bindtap="start">打开电表，探索内部 →</button></view>
-<view class="panel chapter-panel" wx:elif="{{panel===1}}"><view class="title">认识四个核心模块</view><view class="module-grid"><button wx:for="{{modules}}" wx:key="id" class="module {{item.inspected?'seen':''}}" data-id="{{item.id}}" bindtap="inspect"><view class="module-code">{{item.code}} {{item.inspected?'✓':'＋'}}</view><view>{{item.name}}</view><view class="small muted">{{item.role}}</view></button></view><view class="module-detail"><view class="label">{{activeModule?activeModule.name:'点击模块，查看它的职责'}}</view><view class="small">{{activeModule?activeModule.detail:'采样、计算、传递与供电，共同组成可信的技术链路。'}}</view></view><button class="primary" disabled="{{s.inspected.length!==4}}" bindtap="assemble">已探索 {{s.inspected.length}} / 4 · 开始组装 →</button></view>
-<view class="panel chapter-panel" wx:elif="{{panel===2}}"><view class="title">重建技术链路</view><view class="small muted">拖入模块，或点选模块再点槽位。</view><view class="assembly-zone" catchtouchstart="holdGesture" catchtouchend="holdGesture" catchtouchcancel="holdGesture"><view class="slot-grid"><view wx:for="{{modules}}" wx:key="id" class="slot {{faultSlot===item.id?'fault':''}} {{item.placed?'filled':''}}" data-id="{{item.id}}" bindtap="slotTap"><view>{{item.slot}}</view><view class="small">{{item.placed?item.name:'等待连接 ＋'}}</view></view></view><view class="tray"><button wx:for="{{modules}}" wx:key="id" class="part {{item.placed?'placed':''}} {{selected===item.id?'selected':''}}" data-id="{{item.id}}" disabled="{{item.placed}}" bindtap="select" bindtouchstart="dragStart" catchtouchmove="dragMove" bindtouchend="dragEnd" bindtouchcancel="dragCancel">{{item.name}}{{item.placed?' ✓':''}}</button></view></view><button class="primary" disabled="{{s.assembled.length!==4}}" bindtap="test">连接 {{s.assembled.length}} / 4 · 通电测试 →</button></view>
-<view class="panel chapter-panel" wx:elif="{{panel===3}}"><view class="title">给技术链路通电</view><view class="small muted">滑动负载，观察功率与波形如何变化。</view><view class="instrument-space" catchtouchstart="holdGesture" catchtouchend="holdGesture" catchtouchcancel="holdGesture"><live-meter calibrated="{{s.calibrated}}"/></view><button class="primary" bindtap="nextPanel">检测计量精度 →</button></view>
-<view class="panel chapter-panel" wx:elif="{{panel===4}}"><view class="title">找出异常测试点</view><view class="tag">教学阈值 ±{{chapter.tolerance}}%</view><view class="small muted">偏差 =（实测 − 参考）÷ 参考 × 100%</view><view><view class="test-header"><text>测试点</text><text>参考 / 实测 kWh</text><text>偏差</text></view><button wx:for="{{chapter.tests}}" wx:key="id" class="test-row {{s.anomalyFound&&item.id==='b'?'abnormal':''}}" disabled="{{s.anomalyFound}}" data-id="{{item.id}}" bindtap="anomaly"><text>{{item.name}}</text><text>{{item.reference}} / {{item.measured}}</text><text>{{item.error}}</text></button></view><view class="small muted">教学数据，不代表产品规格或验收标准。</view><button class="primary" disabled="{{!s.anomalyFound}}" bindtap="nextPanel">追溯问题，开始改进 →</button></view>
-<view class="panel chapter-panel" wx:elif="{{panel===5}}"><view class="title">发现偏差后，怎么做？</view><view wx:if="{{!s.calibrated}}"><button wx:for="{{chapter.remedies}}" wx:key="id" class="option" data-id="{{item.id}}" bindtap="remedy"><view>{{item.title}}</view><view class="small muted">{{item.text}}</view></button></view><view class="card retest" wx:else><view class="label">校准后 · 模拟复测通过</view><view wx:for="{{chapter.retest}}" wx:key="name" class="row result-row"><text>{{item.name}}</text><text>{{item.error}} ✓</text></view><view class="line"/><view class="small">保留异常记录，让每次改进都有验证。</view></view><button class="primary" disabled="{{!s.calibrated}}" bindtap="innovation">接受新的客户挑战 →</button></view>
-<view class="panel chapter-panel" wx:else><view class="title">新需求，需要新答案</view><view class="small">光伏客户需要同时看清用电量与向电网回送的电量。</view><view><button wx:for="{{chapter.innovation}}" wx:key="id" class="option {{s.innovated&&item.id==='bidirectional'?'selected':''}}" disabled="{{s.innovated}}" data-id="{{item.id}}" bindtap="innovate">{{item.title}}</button></view><button class="primary" disabled="{{!s.innovated}}" bindtap="finish">点亮技术之芯，领取印记 ↗</button></view>
-<view class="feedback-space"><view class="feedback" wx:if="{{feedback}}" role="alert">{{feedback}}</view><view class="small muted" wx:else>左右滑动翻页 · 当前任务完成后解锁下一步</view></view><view wx:if="{{drag}}" class="drag-ghost" style="left:{{drag.x}}px;top:{{drag.y}}px">{{drag.name}}</view>
-<view class="pager"><button class="nav-arrow" bindtap="prevPanel" disabled="{{panel===0}}">‹</button><view class="pager-center"><view class="dots"><text wx:for="{{panelCount}}" wx:key="*this" class="dot {{index===panel?'active':''}}"/></view><text>滑动空白处翻页 · {{panel+1}} / {{panelCount}}</text></view><button class="nav-arrow" bindtap="nextPanel" disabled="{{panel===panelCount-1}}">›</button></view></view>
+<view class="viewport" bindtouchstart="swipeStart" bindtouchend="swipeEnd" bindtouchcancel="swipeCancel">
+  <view class="topline">
+    <text class="eyebrow">CHAPTER 01 / 技术之芯</text>
+    <button class="text-button" bindtap="home">首页</button>
+  </view>
+  <view wx:if="{{warning}}" class="save-warning">{{warning}}</view>
+  <view class="culture chapter-culture">
+    <view class="quote">创新驱动、技术为本</view>
+    <view class="label">创新 / 精进 · {{chapter.steps[s.step]}}</view>
+  </view>
+  <view class="panel chapter-panel" wx:if="{{panel===0}}">
+    <view class="title">从一块电表，<view>看见技术的价值。</view></view>
+    <view class="meter-hero">
+      <view>EASTRON / 教学原型</view>
+      <view class="meter-screen"><view class="meter-digits">0000.00</view><text>ENERGY / kWh</text></view>
+      <view>●　 ●　 ●　 ●</view>
+    </view>
+    <view class="subtitle">把能源变化变成可信的数据。<view>用技术回应需求，让改进经过验证。</view></view>
+    <button class="primary" bindtap="start">打开电表，探索内部 →</button>
+  </view>
+  <view class="panel chapter-panel" wx:elif="{{panel===1}}">
+    <view class="title">认识四个核心模块</view>
+    <view class="module-grid">
+      <button
+        wx:for="{{modules}}"
+        wx:key="id"
+        class="module {{item.inspected?'seen':''}}"
+        data-id="{{item.id}}"
+        bindtap="inspect"
+      >
+        <view class="module-code">{{item.code}} {{item.inspected?'✓':'＋'}}</view>
+        <view>{{item.name}}</view>
+        <view class="small muted">{{item.role}}</view>
+      </button>
+    </view>
+    <view class="module-detail">
+      <view class="label">{{activeModule?activeModule.name:'点击模块，查看它的职责'}}</view>
+      <view class="small">{{activeModule?activeModule.detail:'采样、计算、传递与供电，共同组成可信的技术链路。'}}</view>
+    </view>
+    <button class="primary" disabled="{{s.inspected.length!==4}}" bindtap="assemble">已探索 {{s.inspected.length}} / 4 · 开始组装 →</button>
+  </view>
+  <view class="panel chapter-panel" wx:elif="{{panel===2}}">
+    <view class="title">重建技术链路</view>
+    <view class="small muted">拖入模块，或点选模块再点槽位。</view>
+    <view
+      class="assembly-zone"
+      catchtouchstart="holdGesture"
+      catchtouchend="holdGesture"
+      catchtouchcancel="holdGesture"
+    >
+      <view class="slot-grid">
+        <view
+          wx:for="{{modules}}"
+          wx:key="id"
+          class="slot {{faultSlot===item.id?'fault':''}} {{item.placed?'filled':''}}"
+          data-id="{{item.id}}"
+          bindtap="slotTap"
+        >
+          <view>{{item.slot}}</view>
+          <view class="small">{{item.placed?item.name:'等待连接 ＋'}}</view>
+        </view>
+      </view>
+      <view class="tray">
+        <button
+          wx:for="{{modules}}"
+          wx:key="id"
+          class="part {{item.placed?'placed':''}} {{selected===item.id?'selected':''}}"
+          data-id="{{item.id}}"
+          disabled="{{item.placed}}"
+          bindtap="select"
+          bindtouchstart="dragStart"
+          catchtouchmove="dragMove"
+          bindtouchend="dragEnd"
+          bindtouchcancel="dragCancel"
+        >{{item.name}}{{item.placed?' ✓':''}}</button>
+      </view>
+    </view>
+    <button class="primary" disabled="{{s.assembled.length!==4}}" bindtap="test">连接 {{s.assembled.length}} / 4 · 通电测试 →</button>
+  </view>
+  <view class="panel chapter-panel" wx:elif="{{panel===3}}">
+    <view class="title">给技术链路通电</view>
+    <view class="small muted">滑动负载，观察功率与波形如何变化。</view>
+    <view
+      class="instrument-space"
+      catchtouchstart="holdGesture"
+      catchtouchend="holdGesture"
+      catchtouchcancel="holdGesture"
+    >
+      <live-meter calibrated="{{s.calibrated}}"/>
+    </view>
+    <button class="primary" bindtap="nextPanel">检测计量精度 →</button>
+  </view>
+  <view class="panel chapter-panel" wx:elif="{{panel===4}}">
+    <view class="title">找出异常测试点</view>
+    <view class="tag">教学阈值 ±{{chapter.tolerance}}%</view>
+    <view class="small muted">偏差 =（实测 − 参考）÷ 参考 × 100%</view>
+    <view>
+      <view class="test-header"><text>测试点</text><text>参考 / 实测 kWh</text><text>偏差</text></view>
+      <button
+        wx:for="{{chapter.tests}}"
+        wx:key="id"
+        class="test-row {{s.anomalyFound&&item.id==='b'?'abnormal':''}}"
+        disabled="{{s.anomalyFound}}"
+        data-id="{{item.id}}"
+        bindtap="anomaly"
+      ><text>{{item.name}}</text><text>{{item.reference}} / {{item.measured}}</text><text>{{item.error}}</text></button>
+    </view>
+    <view class="small muted">教学数据，不代表产品规格或验收标准。</view>
+    <button class="primary" disabled="{{!s.anomalyFound}}" bindtap="nextPanel">追溯问题，开始改进 →</button>
+  </view>
+  <view class="panel chapter-panel" wx:elif="{{panel===5}}">
+    <view class="title">发现偏差后，怎么做？</view>
+    <view wx:if="{{!s.calibrated}}">
+      <button wx:for="{{chapter.remedies}}" wx:key="id" class="option" data-id="{{item.id}}" bindtap="remedy">
+        <view>{{item.title}}</view>
+        <view class="small muted">{{item.text}}</view>
+      </button>
+    </view>
+    <view class="card retest" wx:else>
+      <view class="label">校准后 · 模拟复测通过</view>
+      <view wx:for="{{chapter.retest}}" wx:key="name" class="row result-row"><text>{{item.name}}</text><text>{{item.error}} ✓</text></view>
+      <view class="line"/>
+      <view class="small">保留异常记录，让每次改进都有验证。</view>
+    </view>
+    <button class="primary" disabled="{{!s.calibrated}}" bindtap="innovation">接受新的客户挑战 →</button>
+  </view>
+  <view class="panel chapter-panel" wx:else>
+    <view class="title">新需求，需要新答案</view>
+    <view class="small">光伏客户需要同时看清用电量与向电网回送的电量。</view>
+    <view>
+      <button
+        wx:for="{{chapter.innovation}}"
+        wx:key="id"
+        class="option {{s.innovated&&item.id==='bidirectional'?'selected':''}}"
+        disabled="{{s.innovated}}"
+        data-id="{{item.id}}"
+        bindtap="innovate"
+      >{{item.title}}</button>
+    </view>
+    <button class="primary" disabled="{{!s.innovated}}" bindtap="finish">点亮技术之芯，领取印记 ↗</button>
+  </view>
+  <view class="feedback-space">
+    <view class="feedback" wx:if="{{feedback}}" role="alert">{{feedback}}</view>
+    <view class="small muted" wx:else>左右滑动翻页 · 当前任务完成后解锁下一步</view>
+  </view>
+  <view wx:if="{{drag}}" class="drag-ghost" style="left:{{drag.x}}px;top:{{drag.y}}px">{{drag.name}}</view>
+  <view class="pager">
+    <button class="nav-arrow" bindtap="prevPanel" disabled="{{panel===0}}">‹</button>
+    <view class="pager-center">
+      <view class="dots"><text wx:for="{{panelCount}}" wx:key="*this" class="dot {{index===panel?'active':''}}"/></view>
+      <text>滑动空白处翻页 · {{panel+1}} / {{panelCount}}</text>
+    </view>
+    <button class="nav-arrow" bindtap="nextPanel" disabled="{{panel===panelCount-1}}">›</button>
+  </view>
+</view>

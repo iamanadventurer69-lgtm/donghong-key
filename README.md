@@ -50,18 +50,23 @@
 
 ```text
 project.config.json       微信开发者工具导入配置
+.prettierrc / .prettierignore  代码风格配置（仅开发时用）
 miniprogram/
   app.js / app.json / app.wxss
   data/content.js         企业文化、剧情、模块、测试数据、选项与强化文案
   utils/state.js          关卡状态、前置条件、存档清洗、进度与续玩路由
   utils/storage.js        本地存档、内存降级与保存失败提示
+  utils/pager.js          横向翻页手势与共用翻页方法
   components/energy-network/  Canvas 2D 能源网络组件
+  components/live-meter/       实时实验台组件（负载、功率与波形）
   pages/home/             首页
   pages/prologue/         序章
-  pages/chapter/          第一章的五个步骤
+  pages/chapter/          第一章的七个分屏
+  pages/mission/          第二、三章的 NPC 对话与选择题
   pages/culture/          文化强化与行动承诺
   pages/progress/         进度与文化档案
 tests/                   无额外依赖的逻辑、页面控制器与静态检查
+tools/format-wxml.mjs    WXML 排版器（零依赖）
 ```
 
 新增文案、模块说明、测试记录优先修改 `data/content.js`。增加新的游戏规则时同步修改 `utils/state.js` 和相应页面。Canvas 和拖拽均按容器尺寸/屏幕坐标计算；拖拽提供点选替代操作。
@@ -84,6 +89,35 @@ npm run check
 测试覆盖完整关卡流程、错误反馈、前置条件、存档恢复、保存失败、点选组装、拖放边界与页面跳转。页面测试使用微信 API 模拟，不等同于微信运行时或真机验收。静态检查验证 JS、JSON、页面文件完整性及事件绑定。
 
 具体测试结果及手动验收项见 `VALIDATION.md`。
+
+## 代码风格与排版
+
+统一风格为：**2 空格缩进、单引号、语句末尾分号、行宽 100 列**（WXML 为 120 列）。
+JS / JSON / WXSS 由 Prettier 负责，WXML 由项目自带的 `tools/format-wxml.mjs` 负责。
+
+```sh
+npm install            # 只为格式化，开发工具与真机运行都不需要
+npm run format         # 按上面的风格重排全部源码
+npm run format:check   # 只检查，不写回（提交前跑）
+npm run verify         # format:check + check + test 全跑一遍
+```
+
+WXML 排版器刻意保守，两条规则不可违背：
+
+1. **文本节点原样保留**——WXML 的 `<text>` 会保留空格与换行，在文本中间插入换行，
+   真机上就会多出可见空白。因此含文本的元素即使超过 120 列也不会折行。
+2. **只在子节点全是块级元素时折行**，且不在相邻的行内元素（text / image / icon）之间折行，
+   避免凭空多出一个影响排版的空白文本节点。
+
+排版器会把这类无法安全折行的情况打印成提示（不影响退出码），需要人工判断时看提示即可。
+`npm run format:check` 只检查是否已排版；`node tools/format-wxml.mjs --check` 只检查 WXML。
+
+写作约定：
+
+- 一个文件一个主题，文件顶部用一段注释说明「这个文件负责什么」。
+- `data/content.js` 只放文案与数据，`utils/state.js` 只放规则，页面只负责展示与收集操作。
+- 变量名写全（`content`、`module`、`touch`），不写 `c`、`m`、`t` 这类缩写；单行只声明一个变量。
+- 嵌套三元改成 `if` 早返回；超过三层的 `else if` 拆成独立判断块。
 
 ## 下一步
 

@@ -21,7 +21,26 @@ npm run test:web   # 用 Chromium 端到端跑一遍（64 项断言，需要 Pla
 ```
 
 改动小程序里的内容或规则后要重新 `npm run build:web`——`npm run verify` 会校验产物是否过期。
-网页版也可以直接丢到静态托管（Cloudflare Pages / GitHub Pages / 任意对象存储）当作网址分享。
+### 托管到 GitHub Pages
+
+仓库里已经放好工作流 `.github/workflows/pages.yml`：推 `main` 分支时自动跑静态检查 + 单元测试 + 构建网页版，然后发布 `web/` 目录。
+
+```sh
+# 一次性：在 github.com 新建一个空仓库（建议 public），然后
+git remote add origin https://github.com/<你的用户名>/<仓库名>.git
+git push -u origin main
+```
+
+推送后到仓库 **Settings → Pages → Source 选「GitHub Actions」**（只需设一次），Actions 跑完就有网址：
+
+```
+https://<你的用户名>.github.io/<仓库名>/
+```
+
+两点说明：
+
+- 项目站点是子路径（`/仓库名/`），已实测可直接运行（网页版里所有资源都是相对路径，含 `.nojekyll` 跳过 Jekyll）。
+- 免费账号的 GitHub Pages 只对 **public 仓库**开放；本项目含企业内部文化文案，若要私有仓库 + Pages 需要 GitHub Pro，或改用 Cloudflare Pages（私有仓库免费）。
 
 ## 快速运行（小程序版）
 

@@ -1,0 +1,55 @@
+name: Deploy web to GitHub Pages
+
+# 只有网页版会发布到 Pages（小程序版不进这个流程）。
+# 首次使用：仓库 Settings → Pages → Source 选「GitHub Actions」，然后推 main 分支。
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - 'miniprogram/**'
+      - 'tools/**'
+      - 'tests/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 先跑一遍静态检查与单元测试，挂了就不发布
+      - name: 静态检查
+        run: node tests/check.js
+      - name: 单元测试
+        run: node --test tests/*.test.js
+      - name: 构建网页版（零依赖，把共享内核打包进 web/）
+        run: node tools/build-web.mjs
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -5,12 +5,6 @@
   </view>
   <view class="scene" style="background:linear-gradient(145deg, {{mission.color}}, #e9f8ff)">
     <view class="scene-grid"/>
-    <view class="scene-building">
-      <view class="building-window"/>
-      <view class="building-window"/>
-      <view class="building-window"/>
-      <view class="building-window"/>
-    </view>
     <view class="scene-title">{{mission.title}}</view>
     <view class="scene-direction">{{mission.direction}}</view>
     <view class="npc"><view class="npc-head">{{mission.npc.avatar}}</view><text>{{mission.npc.name}}</text></view>

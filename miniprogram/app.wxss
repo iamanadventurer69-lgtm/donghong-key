@@ -189,16 +189,35 @@ button[disabled] {
   font-size: 18px;
   letter-spacing: 2px;
 }
+/* 章节卡片：头部一行（编号 + 标题 + 状态），下面各行独占宽度，
+   窄屏也不会把标题挤成竖排。 */
 .chapter-card {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  text-align: left;
+}
+.chapter-head {
+  display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
 }
 .section-title {
   font-size: 19px;
   font-weight: 600;
 }
-.chapter-card .tag {
+.chapter-head .number {
+  flex: none;
+  font-size: 24px;
+}
+.chapter-head .section-title {
+  flex: 1;
+  min-width: 0;
+}
+.chapter-head .tag {
+  flex: none;
+  align-self: center;
   margin-left: auto;
 }
 .hero-title {

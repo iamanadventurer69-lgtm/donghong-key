@@ -14,27 +14,31 @@
   <view class="panel" wx:elif="{{panel===1}}">
     <view class="title">一段旅程，<view>三种能力。</view></view>
     <button class="card chapter-card stage-button" bindtap="start">
-      <text class="number">01</text>
-      <view><view class="section-title">技术之芯</view><view class="muted">创新驱动、技术为本</view></view>
-      <text class="tag">{{s.completed?'已点亮':'可探索'}}</text>
+      <view class="chapter-head">
+        <text class="number">01</text>
+        <text class="section-title">技术之芯</text>
+        <text class="tag">{{s.completed?'已点亮':'可探索'}}</text>
+      </view>
+      <view class="muted">创新驱动、技术为本</view>
+      <view class="small muted">模块组装 · 精度排查</view>
     </button>
     <button class="card chapter-card stage-button" data-stage="2" bindtap="openMission">
-      <text class="number">02</text>
-      <view>
-        <view class="section-title">世界之门</view>
-        <view class="muted">国际认证、全球布局</view>
-        <view class="small muted">NPC 对话 · 认证匹配</view>
+      <view class="chapter-head">
+        <text class="number">02</text>
+        <text class="section-title">世界之门</text>
+        <text class="tag">{{s.missions['2']?'已点亮':'进入'}}</text>
       </view>
-      <text class="tag">{{s.missions['2']?'已点亮':'进入'}}</text>
+      <view class="muted">国际认证、全球布局</view>
+      <view class="small muted">NPC 对话 · 认证匹配</view>
     </button>
     <button class="card chapter-card stage-button" data-stage="3" bindtap="openMission">
-      <text class="number">03</text>
-      <view>
-        <view class="section-title">客户之光</view>
-        <view class="muted">行业聚焦、定制化方案</view>
-        <view class="small muted">NPC 对话 · 场景方案</view>
+      <view class="chapter-head">
+        <text class="number">03</text>
+        <text class="section-title">客户之光</text>
+        <text class="tag">{{s.missions['3']?'已点亮':'进入'}}</text>
       </view>
-      <text class="tag">{{s.missions['3']?'已点亮':'进入'}}</text>
+      <view class="muted">行业聚焦、定制化方案</view>
+      <view class="small muted">NPC 对话 · 场景方案</view>
     </button>
   </view>
   <view class="panel" wx:else>

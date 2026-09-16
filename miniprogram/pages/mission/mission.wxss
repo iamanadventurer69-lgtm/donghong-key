@@ -33,7 +33,7 @@
   border: 0;
 }
 .scene {
-  height: 255px;
+  height: 208px;
   border-radius: 24px;
   position: relative;
   overflow: hidden;
@@ -45,25 +45,6 @@
   background-image:
     linear-gradient(#fff7 1px, transparent 1px), linear-gradient(90deg, #fff7 1px, transparent 1px);
   background-size: 22px 22px;
-}
-.scene-building {
-  position: absolute;
-  bottom: 24px;
-  left: 28px;
-  width: 145px;
-  height: 160px;
-  background: #fff;
-  border: 3px solid #d1efff;
-  border-radius: 16px 16px 0 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  padding: 24px;
-}
-.building-window {
-  background: #83ccec;
-  border-radius: 5px;
-  box-shadow: inset 0 0 12px #209dd066;
 }
 .scene-title {
   position: absolute;
@@ -77,14 +58,14 @@
 .scene-direction {
   position: absolute;
   left: 24px;
-  top: 66px;
+  top: 70px;
   color: #effaff;
   font-size: 13px;
 }
 .npc {
   position: absolute;
   right: 25px;
-  bottom: 28px;
+  bottom: 22px;
   text-align: center;
   color: #175779;
   font-size: 12px;
@@ -189,13 +170,7 @@
 }
 @media (max-height: 600px) {
   .scene {
-    height: 190px;
-  }
-  .scene-building {
-    height: 115px;
-    width: 115px;
-    padding: 16px;
-    gap: 9px;
+    height: 158px;
   }
   .dialog {
     padding: 15px;

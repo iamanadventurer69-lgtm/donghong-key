@@ -1,0 +1,28 @@
+const pager=require('../../utils/pager');
+const c=require('../../data/content');const store=require('../../utils/storage');
+Page({...pager.methods,
+ data:{panel:0,panelCount:7,chapter:c.chapter,feedback:'',selected:null,drag:null,activeModule:null,faultSlot:null},
+ onLoad(){if(!store.read().prologueDone)wx.redirectTo({url:'/pages/prologue/prologue'});},
+ onShow(){this.sync();const s=store.read();this.setData({panel:s.step<3?s.step:s.step===4?6:s.calibrated||s.anomalyFound?5:3});},
+ nextPanel(){const p=this.data.panel,s=store.read();if(p===0)this.start();else if(p===1){if(s.inspected.length===4)this.assemble();else this.setData({feedback:'先点击探索四个模块，再向左滑动。'});}else if(p===2){if(s.assembled.length===4)this.test();else this.setData({feedback:'完成四个模块连接后才能进入测试。'});}else if(p===3)this.setData({panel:4,feedback:''});else if(p===4){if(s.anomalyFound)this.setData({panel:5,feedback:''});else this.setData({feedback:'先找出超出教学阈值的测试点。'});}else if(p===5){if(s.calibrated)this.innovation();else this.setData({feedback:'完成问题追溯与复测后继续。'});}else if(s.innovated)this.finish();},
+ prevPanel(){this.setData({panel:Math.max(0,this.data.panel-1),feedback:'',activeModule:null});},
+ sync(){const s=store.read();this.setData({s,modules:c.chapter.modules.map(m=>({...m,inspected:s.inspected.includes(m.id),placed:s.assembled.includes(m.id)})),warning:store.warning()});},
+ dispatch(event,payload){store.dispatch(event,payload);this.sync();},
+ start(){this.dispatch('start');this.setData({panel:1,feedback:''});},
+ inspect(e){const id=e.currentTarget.dataset.id;this.dispatch('inspect',id);this.setData({activeModule:c.chapter.modules.find(m=>m.id===id)});},
+ assemble(){this.dispatch('assembleStart');this.setData({panel:2,feedback:'',activeModule:null});},
+ select(e){const id=e.currentTarget.dataset.id;if(store.read().assembled.includes(id))return;this.setData({selected:id,feedback:'已选择模块，请点击对应功能槽位；也可以直接拖入。'});},
+ placeAt(id,slot){if(!id||store.read().assembled.includes(id))return;if(id===slot){this.dispatch('place',id);this.setData({selected:null,feedback:'连接成功。每个模块各司其职，可信数据来自完整技术链路。'});}else{this.setData({faultSlot:slot});clearTimeout(this.faultTimer);this.faultTimer=setTimeout(()=>this.setData({faultSlot:null}),550);this.dispatch('mistake');const m=c.chapter.modules.find(m=>m.id===slot);this.setData({feedback:m?m.failure:'请将模块放入虚线槽位。'});}},
+ slotTap(e){if(!this.data.selected){this.setData({feedback:'先选择下方的模块，再点击功能槽位。'});return;}this.placeAt(this.data.selected,e.currentTarget.dataset.id);},
+ dragStart(e){this.swipeOrigin=null;const id=e.currentTarget.dataset.id;if(store.read().assembled.includes(id))return;const t=e.touches[0];this.dragOrigin={x:t.clientX,y:t.clientY};this.dragId=id;this.dragMoved=false;this.slotRects=[];this.createSelectorQuery().selectAll('.slot').boundingClientRect(rects=>{this.slotRects=rects||[];}).exec();},
+ dragMove(e){if(!this.dragId||!e.touches.length)return;const t=e.touches[0];if(Math.abs(t.clientX-this.dragOrigin.x)+Math.abs(t.clientY-this.dragOrigin.y)<8)return;this.dragMoved=true;this.setData({drag:{x:t.clientX-62,y:t.clientY-28,name:c.chapter.modules.find(m=>m.id===this.dragId).name}});},
+ dragEnd(e){if(!this.dragId)return;const id=this.dragId,t=e.changedTouches[0];if(this.dragMoved&&t){const rect=this.slotRects.find(r=>t.clientX>=r.left&&t.clientX<=r.right&&t.clientY>=r.top&&t.clientY<=r.bottom);if(rect)this.placeAt(id,rect.dataset.id);else this.setData({feedback:'未放入功能槽位，模块已归位。可以点击模块，再点击目标槽位。'});}this.dragCancel();},
+ dragCancel(){this.dragId=null;this.dragMoved=false;this.setData({drag:null});},
+ test(){this.dispatch('testStart');this.setData({panel:3,feedback:''});},
+ anomaly(e){const id=e.currentTarget.dataset.id;this.dispatch('anomaly',id);this.setData({feedback:id===c.chapter.anomaly?'已锁定测试点 B：偏差 +2.4%，超出教学阈值 ±0.5%。请继续追溯并修复。':'这个测试点在教学阈值内。比较偏差的绝对值，找到超过 0.5% 的数据。'});},
+ remedy(e){const item=c.chapter.remedies.find(x=>x.id===e.currentTarget.dataset.id);this.dispatch('calibrate',item.id);this.setData({feedback:item.feedback});},
+ innovation(){this.dispatch('innovationStart');this.setData({panel:6,feedback:''});},
+ innovate(e){const item=c.chapter.innovation.find(x=>x.id===e.currentTarget.dataset.id);this.dispatch('innovate',item.id);this.setData({feedback:item.feedback});},
+ finish(){if(store.read().innovated)wx.redirectTo({url:'/pages/culture/culture'});},
+ home(){wx.reLaunch({url:'/pages/home/home'});},onHide(){clearTimeout(this.faultTimer);this.setData({faultSlot:null});this.dragCancel();},onUnload(){clearTimeout(this.faultTimer);},onResize(){this.dragCancel();}
+});

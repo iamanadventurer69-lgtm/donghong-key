@@ -1,0 +1,22 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/mission/mission",
+    "pages/prologue/prologue",
+    "pages/chapter/chapter",
+    "pages/culture/culture",
+    "pages/progress/progress"
+  ],
+  "window": {
+    "navigationBarTitleText": "东鸿密钥",
+    "navigationBarBackgroundColor": "#e9f7ff",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f4fbff",
+    "backgroundTextStyle": "dark"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "usingComponents": {
+    "energy-network": "/components/energy-network/energy-network"
+  }
+}

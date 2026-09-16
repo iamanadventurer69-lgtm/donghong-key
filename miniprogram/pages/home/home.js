@@ -1,0 +1,3 @@
+const pager=require('../../utils/pager');
+const content=require('../../data/content');const store=require('../../utils/storage');const state=require('../../utils/state');
+Page({...pager.methods,data:{panel:0,panelCount:3,culture:content.culture,company:content.company},onShow(){const s=store.read();this.setData({s,percent:state.percent(s),active:s.completed?6:s.prologueDone?2:0,warning:store.warning(),cta:s.completed?'回顾我的文化印记':s.updatedAt?'继续探索':'开启文化探索'});},start(){wx.navigateTo({url:state.route(store.read())});},openMission(e){wx.navigateTo({url:'/pages/mission/mission?stage='+e.currentTarget.dataset.stage});},progress(){wx.navigateTo({url:'/pages/progress/progress'});}});

@@ -1,0 +1,3 @@
+const pager=require('../../utils/pager');
+const c=require('../../data/content');const store=require('../../utils/storage');
+Page({...pager.methods,data:{panel:0,panelCount:3,culture:c.culture},onShow(){this.sync();},sync(){const s=store.read();this.setData({s,panel:s.prologue,scene:c.prologue[s.prologue],warning:store.warning()});},prevPanel(){const s=store.read();if(s.prologue>0){store.write({...s,prologue:s.prologue-1});this.sync();}},nextPanel(){if(this.data.panel<2)this.next();},next(){const s=store.read();if(s.prologue<2){store.dispatch('prologue');this.sync();}else{store.dispatch('mission');wx.redirectTo({url:'/pages/chapter/chapter'});}},home(){wx.reLaunch({url:'/pages/home/home'});}});

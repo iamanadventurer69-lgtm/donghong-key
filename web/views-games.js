@@ -60,7 +60,8 @@
 
   App.register('#/games', () => {
     const s = store().read();
-    const unlocked = state.cultureDone(s);
+    // 解锁条件：企业文化学习 + 文化画像测试全部完成
+    const unlocked = App.testDone(s);
     const done = GAME_LIST.filter((game) => gameDone(game.id, s)).length;
     App.mount(
       `
@@ -71,7 +72,7 @@
       <div class="hud ${unlocked ? '' : 'locked'}">
         <div class="row"><span class="label">${unlocked ? '小游戏进度' : '尚未解锁'}</span><span class="hud-num">${done} / ${GAME_LIST.length}</span></div>
         <div class="track"><div class="track-fill" style="width:${(done / GAME_LIST.length) * 100}%"></div></div>
-        <div class="small muted">${unlocked ? '选一个开始，成绩都会记进探索档案' : '完成企业文化模块（介绍打卡 + 三个互动关卡）后解锁'}</div>
+        <div class="small muted">${unlocked ? '选一个开始，成绩都会记进探索档案' : '完成「文化画像测试」（学习 + 值班 / 认证 / 组卡）后解锁'}</div>
       </div>
       <div class="list">
         ${GAME_LIST.map((game) => {
@@ -89,13 +90,15 @@
       </div>
       <div class="feedback" id="games-feedback" hidden></div>
       <div class="hint">${unlocked ? '成绩计入通关结算的 GRADE 评级' : '小游戏：跳格子 / 配对 / 三消 / 答题 / 实验台'}</div>
-      ${unlocked ? '' : '<button class="secondary" data-action="to-module">← 先去完成企业文化模块</button>'}
+      ${unlocked ? '<button class="secondary" data-action="to-final">查看通关结算 →</button>' : '<button class="secondary" data-action="to-test">← 先去完成文化画像测试</button>'}
       ${App.warning()}`,
       (root) => {
         App.on(root, '[data-action]', 'click', (event, hit) => {
           const action = hit.dataset.action;
           if (action === 'back') return App.go('#/home');
-          if (action === 'to-module') return App.go('#/quest');
+          if (action === 'to-test')
+            return App.go(`#/test/${App.TEST_STEPS[App.testStep(store().read())].id}`);
+          if (action === 'to-final') return App.go('#/final');
           if (action === 'open') {
             if (!unlocked) {
               const feedback = root.querySelector('#games-feedback');
@@ -743,4 +746,60 @@
       }
     );
   });
+
+  /* ==================== 通关结算 ==================== */
+  App.register(
+    '#/final',
+    () => {
+      const s = store().read();
+      if (!state.allDone(s)) return App.go(App.nextAction(s).hash);
+      const board = state.scoreboard(s);
+      const grade = board.grade;
+      App.mount(
+        `
+        <div class="topline">
+          <span class="eyebrow">FINAL REPORT / 通关结算</span>
+          <button class="text-button" data-action="home">首页</button>
+        </div>
+        <div class="sheet final">
+          <div class="final-title">🏆 东鸿密钥 · 全部通关！</div>
+          <div class="small muted">企业文化、文化画像测试与闯关小游戏都已完成</div>
+          <div class="final-tasks">${board.tasks
+            .map(
+              (task) =>
+                `<div class="final-task"><span>${task.icon} ${esc(task.name)}</span><span class="final-state">${task.done ? '✅' : '⬜'}</span></div>`
+            )
+            .join('')}</div>
+          <div class="final-scores">
+            <div class="final-score"><span class="final-val">${board.trust}</span><span class="final-lbl">客户信任</span></div>
+            <div class="final-score"><span class="final-val">${board.hop.wrong}</span><span class="final-lbl">跳格子失误</span></div>
+            <div class="final-score"><span class="final-val">${board.crush.score}</span><span class="final-lbl">三消得分</span></div>
+            <div class="final-score"><span class="final-val">${board.quiz.score}</span><span class="final-lbl">答题分数</span></div>
+          </div>
+          <div class="final-detail">
+            <div class="detail-title">成绩明细</div>
+            <div class="detail-row"><span>认证配对</span><span>${board.cert.matched} / ${board.cert.total} 个市场</span></div>
+            <div class="detail-row"><span>方案组卡</span><span>${board.solution.perfect ? '满分组通过' : '已通过'}</span></div>
+            <div class="detail-row"><span>模块配对</span><span>${board.flip.moves} 步 / ${board.flip.seconds} 秒</span></div>
+            <div class="detail-row"><span>复现异常</span><span>${board.repro.load}% 负载</span></div>
+            <div class="detail-row"><span>知识答题</span><span>${board.quiz.correct} / ${board.quiz.total} 题正确</span></div>
+          </div>
+          <div class="grade" style="background:${grade.color}">GRADE ${grade.code}</div>
+          <div class="small muted final-msg">${esc(grade.comment)}</div>
+          <button class="primary" data-action="games">回到小游戏</button>
+          <button class="secondary" data-action="progress">查看探索档案</button>
+        </div>
+        ${App.warning()}`,
+        (root) => {
+          App.on(root, '[data-action]', 'click', (event, hit) => {
+            const action = hit.dataset.action;
+            if (action === 'home') return App.go('#/home');
+            if (action === 'games') return App.go('#/games');
+            if (action === 'progress') return App.go('#/progress');
+          });
+        }
+      );
+    },
+    'quest'
+  );
 })(window.DHKApp);

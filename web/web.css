@@ -34,10 +34,11 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════
-   宽屏（≥900px）：按网页布局铺开，不再是手机窄框
-   - 首页/画像/档案：所有屏并排显示，不需要翻页
-   - 值班：材料在左、状态与判断按钮在右
-   - 各小游戏：棋盘/卡片限制最大宽度，居中不拉伸
+   宽屏（≥900px）：按网页布局铺开，一屏一个模块
+   - 首页/档案：多屏并排
+   - 学习/测试向导：居中单栏，内容更大
+   - 值班/认证：左右两栏（材料/市场在左，操作在右）
+   - 小游戏：棋盘与列表限制宽度、居中
    ══════════════════════════════════════════════════════════ */
 @media (min-width: 900px) {
   .app-shell.viewport {
@@ -49,7 +50,6 @@ body {
     border-radius: 22px;
     box-shadow: 0 30px 80px #2d6c9124;
     border: 1px solid #cfe6f6;
-    /* 桌面按网页习惯：内容超出时正常滚动，不学手机那样硬裁（窄屏仍是固定视窗翻页） */
     overflow-x: hidden;
     overflow-y: auto;
     scrollbar-width: thin;
@@ -62,17 +62,12 @@ body {
     border-radius: 8px;
   }
 
-  /* —— 通用：面板铺开成网格 —— */
-  .page-home,
-  .page-culture {
+  /* —— 首页 / 档案：多屏并排 —— */
+  .page-home {
     display: grid;
     grid-template-columns: 1.15fr 1fr 1fr;
     gap: 16px;
     align-items: stretch;
-    /* 行高按内容走，别把顶栏那行也撑开 */
-    align-content: start;
-  }
-  .page-culture {
     align-content: start;
   }
   .page-progress {
@@ -84,14 +79,11 @@ body {
   }
   .page-home > .topline,
   .page-home > .save-warning,
-  .page-culture > .topline,
-  .page-culture > .save-warning,
   .page-progress > .topline,
   .page-progress > .save-warning {
     grid-column: 1 / -1;
   }
   .page-home .panel,
-  .page-culture .panel,
   .page-progress .panel {
     justify-content: flex-start;
     gap: 14px;
@@ -109,8 +101,60 @@ body {
   .page-home .hero-title {
     font-size: 40px;
   }
-  .page-progress .panel {
-    overflow: hidden;
+
+  /* —— 学习 / 结算向导：居中单栏，一屏一个模块 —— */
+  .page-quest,
+  .page-culture,
+  .page-solution {
+    max-width: 860px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .page-quest .sheet,
+  .page-culture .sheet {
+    gap: 12px;
+    padding: 22px 26px;
+  }
+  .page-quest .sheet-title {
+    font-size: 24px;
+  }
+  .page-quest .intro {
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .page-quest .option {
+    padding: 13px 15px;
+    font-size: 14px;
+  }
+  .page-quest .explain {
+    font-size: 13px;
+  }
+  .page-quest .win-title {
+    font-size: 24px;
+  }
+  .page-quest .win-text {
+    font-size: 15px;
+  }
+  .page-culture .seal-core {
+    width: 140px;
+    height: 140px;
+    font-size: 40px;
+  }
+  .page-culture .mark-name,
+  .page-culture .mark-val {
+    font-size: 13px;
+  }
+  .page-solution .cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .page-solution .card {
+    padding: 15px;
+  }
+  .page-solution .card-name {
+    font-size: 14px;
+  }
+  .page-solution .card-note {
+    font-size: 12px;
   }
 
   /* —— 序章：故事居中，网络图更大 —— */
@@ -131,17 +175,18 @@ body {
   /* —— 质量值班：材料在左，状态与按钮在右 —— */
   .page-shift {
     display: grid;
-    grid-template-columns: minmax(0, 1.65fr) minmax(320px, 1fr);
-    grid-template-rows: auto auto 1fr auto;
+    grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
     grid-template-areas:
-      'top   top'
-      'sheet hud'
+      'head  head'
+      'hud   act'
       'sheet act'
-      'sheet hint';
-    gap: 14px 20px;
+      'sheet hint'
+      'sheet rule';
+    gap: 14px 22px;
+    align-content: start;
   }
-  .page-shift .topline {
-    grid-area: top;
+  .page-shift .step-head {
+    grid-area: head;
   }
   .page-shift .hud {
     grid-area: hud;
@@ -150,15 +195,6 @@ body {
     grid-area: sheet;
     gap: 10px;
     padding: 20px 22px;
-  }
-  .page-shift .actions,
-  .page-shift > .primary {
-    grid-area: act;
-    align-self: start;
-  }
-  .page-shift .hint {
-    grid-area: hint;
-    align-self: end;
   }
   .page-shift .sheet-title {
     font-size: 26px;
@@ -169,51 +205,38 @@ body {
   .page-shift .doc-text {
     font-size: 13px;
   }
+  .page-shift .actions,
+  .page-shift > .primary {
+    grid-area: act;
+    align-self: start;
+  }
   .page-shift .actions .stamp-button {
     min-height: 56px;
     font-size: 18px;
   }
-
-  /* —— 企业文化模块：四个打卡卡一排，关卡一排 —— */
-  .page-quest .quest-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .page-shift .hint {
+    grid-area: hint;
+    align-self: end;
   }
-  .page-quest .gate-grid {
-    gap: 10px;
-  }
-  .page-quest .gate {
-    padding: 14px 10px;
-  }
-  .page-quest .gate-icon {
-    font-size: 24px;
-  }
-  .page-quest .gate-name {
-    font-size: 14px;
-  }
-  .page-quest .entry {
-    padding: 14px 18px;
-  }
-  .page-quest .section-title {
-    font-size: 13px;
-  }
-  .page-quest .hud-num {
-    font-size: 18px;
+  .page-shift > .text-button {
+    grid-area: rule;
+    justify-self: start;
   }
 
   /* —— 认证配对：市场在左，认证卡在右 —— */
   .page-cert {
     display: grid;
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-    grid-template-rows: auto auto 1fr auto;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
     grid-template-areas:
-      'top      top'
+      'head     head'
       'npc      certs'
       'markets  certs'
       'feedback certs';
     gap: 14px 22px;
+    align-content: start;
   }
-  .page-cert .topline {
-    grid-area: top;
+  .page-cert .step-head {
+    grid-area: head;
   }
   .page-cert .npc {
     grid-area: npc;
@@ -226,64 +249,18 @@ body {
     grid-template-columns: 1fr;
     align-content: center;
   }
+  .page-cert .feedback,
+  .page-cert .hint {
+    grid-area: feedback;
+  }
   .page-cert .cert {
     padding: 16px 12px;
   }
   .page-cert .cert-name {
     font-size: 15px;
   }
-  .page-cert .feedback,
-  .page-cert .hint {
-    grid-area: feedback;
-  }
   .page-cert .market-name {
     font-size: 16px;
-  }
-
-  /* —— 方案组卡：能力卡三列 —— */
-  .page-solution .cards {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .page-solution .card {
-    padding: 14px 14px;
-  }
-  .page-solution .card-name {
-    font-size: 14px;
-  }
-  .page-solution .card-note {
-    font-size: 12px;
-  }
-  .page-solution .npc {
-    max-width: 820px;
-    width: 100%;
-    align-self: center;
-  }
-
-  /* —— 跳格子：格子铺成 6×2，题目区居中 —— */
-  .page-hop .stones {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-  .page-hop .stone {
-    min-height: 58px;
-  }
-  .page-hop .stone-name {
-    font-size: 10px;
-  }
-  .page-hop .panel {
-    max-width: 860px;
-    width: 100%;
-    align-self: center;
-    padding: 16px 20px;
-  }
-  .page-hop .tile-point {
-    font-size: 13px;
-  }
-  .page-hop .q-text {
-    font-size: 16px;
-  }
-  .page-hop .option {
-    padding: 11px 14px;
-    font-size: 14px;
   }
 
   /* —— 小游戏区：两张一排 —— */
@@ -308,12 +285,32 @@ body {
     align-self: center;
   }
 
-  /* —— 翻牌 / 三消：给棋盘一个上限，居中不拉横 —— */
-  .page-flip .grid {
-    max-width: 720px;
-    width: 100%;
-    margin: 0 auto;
+  /* —— 跳格子：格子铺成 6×2，题目区居中 —— */
+  .page-hop .stones {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
+  .page-hop .stone {
+    min-height: 58px;
+  }
+  .page-hop .panel {
+    max-width: 860px;
+    width: 100%;
+    align-self: center;
+    padding: 16px 20px;
+  }
+  .page-hop .tile-point {
+    font-size: 13px;
+  }
+  .page-hop .q-text {
+    font-size: 16px;
+  }
+  .page-hop .option {
+    padding: 11px 14px;
+    font-size: 14px;
+  }
+
+  /* —— 翻牌 / 三消：棋盘限宽居中 —— */
+  .page-flip .grid,
   .page-flip .hud {
     max-width: 720px;
     width: 100%;
@@ -337,7 +334,7 @@ body {
     font-size: 24px;
   }
 
-  /* —— 答题：窄栏居中，选项更大 —— */
+  /* —— 答题：窄栏居中 —— */
   .page-quiz .dots,
   .page-quiz .card,
   .page-quiz .result,
@@ -362,13 +359,14 @@ body {
   .page-repro {
     display: grid;
     grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.85fr);
-    grid-template-rows: auto auto 1fr auto;
     grid-template-areas:
       'top      top'
       'npc      npc'
       'meter    hud'
-      'meter    feedback';
+      'meter    feedback'
+      'hint     hint';
     gap: 14px 20px;
+    align-content: start;
   }
   .page-repro .topline {
     grid-area: top;
@@ -388,14 +386,21 @@ body {
     align-self: start;
   }
   .page-repro .hint {
-    grid-column: 1 / -1;
+    grid-area: hint;
   }
   .page-repro .hud-val {
     font-size: 20px;
   }
+
+  /* —— 通关结算：居中单栏 —— */
+  .page-quest .final {
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
+    border: 1px solid #cfe6f6;
+  }
 }
 
-/* —— 更宽的桌面：首页三栏更舒展，值班右栏更宽 —— */
 @media (min-width: 1280px) {
   .app-shell.viewport {
     max-width: 1240px;
@@ -462,6 +467,77 @@ button > div {
   .crush-board {
     max-height: 46vh;
   }
+}
+
+/* 向导类页面（学习 / 测试 / 结算）内容可能比一屏高，允许纵向滚动，
+   不然小屏上会被固定视窗裁掉。分页式的首页/序章/档案仍然保持不滚动。 */
+.page-quest.viewport,
+.page-shift.viewport,
+.page-cert.viewport,
+.page-solution.viewport,
+.page-culture.viewport {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ══════════ 向导步骤条（学习 / 测试用） ══════════ */
+.step-head {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.step-rail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.step {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font:
+    600 11px Menlo,
+    monospace;
+  background: #eaf4fb;
+  color: #5a8199;
+  border: 1px solid #d3e8f6;
+}
+
+.step.done {
+  background: #249fdb;
+  color: #fff;
+  border-color: #249fdb;
+}
+
+.step.cur {
+  background: #fff;
+  color: #1478ad;
+  border-color: #249fdb;
+  box-shadow: 0 0 0 3px #249fdb22;
+}
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: #dceaf4;
+  border-radius: 2px;
+}
+
+.step-count {
+  font-size: 11px;
+  color: #4f7e9c;
+}
+
+.step-hint {
+  font-size: 11px;
+  color: #7d9cb0;
 }
 
 /* 键盘可达性 */

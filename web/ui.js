@@ -89,8 +89,13 @@ window.DHKApp = window.DHKApp || {};
     cleanups.push(fn);
   };
 
-  App.register = function register(path, view) {
+  /**
+   * 注册一屏。cssPage 指明这一屏复用哪个小程序页面的 WXSS 作用域
+   * （构建时每页样式都加了 .page-xxx 前缀，所以这里必须对上）。
+   */
+  App.register = function register(path, view, cssPage) {
     App.views[path] = view;
+    App.meta[path] = cssPage || path.replace(/^#\//, '').split('/')[0] || 'home';
   };
 
   /**
@@ -123,11 +128,13 @@ window.DHKApp = window.DHKApp || {};
 
   App.render = function render() {
     const hash = location.hash || '#/home';
+    App.prevHash = App.currentHash || '';
+    App.currentHash = hash;
     const view = App.views[hash] || App.views['#/home'];
     // 外壳上挂当前页面的类名，构建出来的 CSS 就是按 .page-xxx 作用域隔开的
-    const name = hash.replace(/^#\/?/, '').split('/')[0] || 'home';
+    const cssPage = App.meta[hash] || hash.replace(/^#\/?/, '').split('/')[0] || 'home';
     const shell = root();
-    if (shell) shell.className = `app-shell viewport page page-${name}`;
+    if (shell) shell.className = `app-shell viewport page page-${cssPage}`;
     view();
   };
 
@@ -162,6 +169,27 @@ window.DHKApp = window.DHKApp || {};
         <span class="eyebrow">${App.esc(title)}</span>
         <div class="topline-actions">${right || '<button class="text-button" data-action="home">首页</button>'}</div>
       </div>`;
+  };
+
+  /**
+   * 向导页头部：第 n / N 步 + 一条进度。让「一屏只干一件事」这件事看得见。
+   * steps 为 [{ id, name }]，current 为当前下标。
+   */
+  App.steps = function steps(title, list, current, options = {}) {
+    const rail = list
+      .map(
+        (step, index) =>
+          `<span class="step ${index < current ? 'done' : ''} ${index === current ? 'cur' : ''}">${index + 1}</span>`
+      )
+      .join('<span class="step-line"></span>');
+    return `<div class="step-head">
+      <div class="topline">
+        <span class="eyebrow">${App.esc(title)}</span>
+        <span class="step-count">第 ${current + 1} / ${list.length} 步 · ${App.esc(list[current].name)}</span>
+      </div>
+      <div class="step-rail">${rail}</div>
+      ${options.hint ? `<div class="step-hint">${App.esc(options.hint)}</div>` : ''}
+    </div>`;
   };
 
   /** 存档失败提示。 */

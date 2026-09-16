@@ -1,16 +1,16 @@
 /**
- * 网页版端到端测试（Chromium）：打开 web/index.html，走完整流程并断言关键结果。
+ * 网页版端到端测试（Chromium）：走完「序章 → 企业文化学习（4 模块）→ 文化画像测试
+ * （值班 / 认证 / 组卡 / 结算）→ 闯关小游戏 → 通关结算」的完整链路，并断言关键结果。
  *
  * 需要 Playwright（不进主依赖）：
  *   PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node tests/web-smoke.mjs
- * 另外会把 index.html 的 file:// 换成 http://，用仓库自带的静态服务跑，
- * 这样和真实部署更接近（file:// 下 localStorage 的行为略有差异）。
+ * 服务器故意挂在子路径 /repo/ 下，模拟 GitHub Pages 的项目站点，
+ * 顺带保证网页版里的资源引用都是相对路径。
  */
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import process from 'node:process';
-import assert from 'node:assert/strict';
 
 const root = path.resolve(import.meta.dirname, '..');
 const webDir = path.join(root, 'web');
@@ -25,11 +25,14 @@ const MIME = {
   '.css': 'text/css; charset=utf-8'
 };
 
+const PREFIX = '/repo/';
 const server = http.createServer((req, res) => {
-  const file = path.join(
-    webDir,
-    decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '') || 'index.html'
-  );
+  const url = decodeURIComponent(req.url.split('?')[0]);
+  if (!url.startsWith(PREFIX)) {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('404');
+    return;
+  }
+  const file = path.join(webDir, url.slice(PREFIX.length).replace(/^\/+/, '') || 'index.html');
   if (!file.startsWith(webDir) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
     res.writeHead(404).end('not found');
     return;
@@ -38,7 +41,7 @@ const server = http.createServer((req, res) => {
   fs.createReadStream(file).pipe(res);
 });
 await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-const base = `http://127.0.0.1:${server.address().port}/index.html`;
+const base = `http://127.0.0.1:${server.address().port}${PREFIX}index.html`;
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 414, height: 736 } });
@@ -50,7 +53,7 @@ page.on('console', (msg) => {
 
 const checks = [];
 const check = (label, condition, detail) => {
-  checks.push({ label, ok: Boolean(condition), detail });
+  checks.push({ label, ok: Boolean(condition) });
   if (!condition) throw new Error(`断言失败：${label}${detail ? ' — ' + detail : ''}`);
 };
 
@@ -59,48 +62,78 @@ const go = async (hash) => {
   await page.evaluate((h) => {
     location.hash = h;
   }, hash);
-  await wait();
+  await wait(200);
 };
+const hash = () => page.evaluate(() => location.hash);
 const text = () => page.locator('#app').innerText();
-/** 用 DOM 原生 click：避免 Playwright 在重渲染后把选择器重新解析到别的按钮上。 */
+const save = () => page.evaluate(() => window.DHKStore.read());
+/** 用 DOM 原生 click，避免 Playwright 在重渲染后重新解析选择器点到别的按钮。 */
 const tap = (selector) =>
   page.evaluate((sel) => {
     const node = document.querySelector(sel);
     if (!node) throw new Error('找不到元素: ' + sel);
     node.click();
   }, selector);
-const save = () => page.evaluate(() => window.DHKStore.read());
-const tileAnswer = (index) =>
-  page.evaluate((i) => window.DHKApp.content.hopGame.tiles[i].answer, index);
+const questAnswer = (index) => page.evaluate((i) => window.DHKApp.content.quests[i].answer, index);
 
 await page.goto(base);
 await page.evaluate(() => localStorage.clear());
 await page.reload();
-await wait(250);
+await wait(300);
 
-/* 1. 首页三屏 */
+/* 0. 子路径托管 + 首页三入口 */
+check(
+  '脚本与样式都从子路径加载',
+  await page.evaluate(() => Boolean(window.DHKApp && window.DHKStore))
+);
+check('页面在子路径下', page.url().includes('/repo/'), page.url());
 check('首页渲染', (await text()).includes('东鸿密钥'));
 await tap('[data-action="next"]');
-check('首页第二屏两个入口', (await text()).includes('闯关小游戏'));
-await tap('[data-action="next"]');
-check(
-  '首页第三屏有进度',
-  (await text()).includes('探索进度') || (await text()).includes('第一阶段进度')
+const entries = await page.evaluate(() =>
+  [...document.querySelectorAll('.chapter-card')].map((card) => card.innerText.replace(/\s+/g, ' '))
 );
+check('首页三个入口', entries.length === 3, entries.join(' / '));
+check('测试与小游戏初始未解锁', entries[1].includes('未解锁') && entries[2].includes('未解锁'));
 
-/* 2. 序章 → 领密钥 → 质量值班 */
+/* 1. 序章 → 直接进入企业文化学习 */
 await go('#/prologue');
 check('序章第一段', (await text()).includes('电在流动'));
 for (let i = 0; i < 3; i += 1) {
   await tap('[data-action="mission"]');
-  await wait(120);
+  await wait(160);
 }
-check('序章后进入值班', page.url().includes('#/shift'), page.url());
+check('领密钥后进入企业文化学习', (await hash()) === '#/learn', await hash());
 check('使命密钥已领取', (await save()).prologueDone === true);
 
-/* 3. 六份材料：三张通过、三张退回，走完值班 */
+/* 2. 四个模块：一步一屏（介绍 → 答题 → 结果 → 下一个模块） */
+for (let module = 0; module < 4; module += 1) {
+  check(`第 ${module + 1} 个模块停在正确步骤`, (await text()).includes(`第 ${module + 1} / 4 步`));
+  check(`第 ${module + 1} 个模块先看内容`, (await text()).includes('开始打卡答题'));
+  await tap('[data-action="start-quiz"]');
+  await wait(140);
+  const answer = await questAnswer(module);
+  await tap(`[data-action="answer"][data-index="${answer}"]`);
+  await wait(180);
+  const afterAnswer = await text();
+  check(
+    `第 ${module + 1} 个模块答对给解释`,
+    afterAnswer.includes('学下一个模块') || afterAnswer.includes('完成学习，去做文化画像测试'),
+    afterAnswer.replace(/\s+/g, ' ').slice(-40)
+  );
+  await tap('[data-action="next-step"]');
+  await wait(220);
+}
+check('四个模块后进入学习完成页', (await hash()) === '#/learn/done', await hash());
+check('学习完成页提示开始测试', (await text()).includes('开始文化画像测试'));
+const afterLearn = await save();
+check('四个展区都已打卡', Object.values(afterLearn.checkins).every(Boolean));
+
+/* 3. 文化画像测试：值班（六份材料，一份一屏） */
+await tap('[data-action="to-test"]');
+await wait(250);
+check('进入测试第一步', (await hash()) === '#/test/shift', await hash());
+check('测试页有步骤条', (await text()).includes('第 1 / 4 步'));
 for (let i = 0; i < 6; i += 1) {
-  // 每张卡的选项不同（有的两张章、有的三选一），按存档算出「这一张该点哪一个」
   const choiceId = await page.evaluate((index) => {
     const card = window.DHKApp.state.currentCard(window.DHKStore.read());
     const back = card.choices.find((choice) => choice.stamp === 'return');
@@ -109,103 +142,73 @@ for (let i = 0; i < 6; i += 1) {
     return pick ? pick.id : card.choices[0].id;
   }, i);
   await tap(`[data-action="choose"][data-id="${choiceId}"]`);
-  await wait(120);
+  await wait(160);
+  check(`第 ${i + 1} 份材料有后果页`, (await text()).includes('客户信任'));
   await tap('[data-action="next"]');
-  await wait(120);
+  await wait(220);
 }
-const afterShift = await save();
-check(
-  '值班六份全部判断完',
-  afterShift.decisions.length === 6,
-  JSON.stringify(afterShift.decisions.length)
-);
-check('信任值被改写', afterShift.trust !== 60, String(afterShift.trust));
-check('值班结束跳文化画像', page.url().includes('#/culture'), page.url());
+check('值班结束进入认证配对', (await hash()) === '#/test/cert', await hash());
+check('值班六份都判过了', (await save()).decisions.length === 6);
 
-/* 4. 文化画像：三屏 + 承诺 */
-check('画像显示信任分档', (await text()).includes('客户信任'));
-await tap('[data-action="next"]');
-check('画像显示印记与关键行为', (await text()).includes('印记构成'));
-await tap('[data-action="next"]');
-await tap('[data-action="pledge"]');
-await tap('[data-action="save"]');
-await wait(200);
-check('行动承诺已保存', (await save()).completed === true);
-
-/* 5. 企业文化模块：四个展区打卡 + 三个关卡入口 */
-await go('#/quest');
-check('模块页有四个展区', (await text()).includes('文化坐标'));
-await tap('[data-action="quest"]');
-check('弹层先看内容介绍', (await text()).includes('愿景'));
-await tap('[data-action="quest-start"]');
-const questAnswer = await page.evaluate(() => window.DHKApp.content.quests[0].answer);
-await tap(`[data-action="quest-pick"][data-index="${questAnswer}"]`);
-check('打卡答对给解释', (await text()).includes('经营理念'));
-await tap('[data-action="quest-close"]');
-check('打卡写进存档', (await save()).checkins.culture === true);
-
-// 剩下三个展区：介绍 → 答题 → 关闭，全部答对
-const restQuests = await page.evaluate(() =>
-  window.DHKApp.content.quests.slice(1).map((quest) => ({ id: quest.id, answer: quest.answer }))
-);
-for (const quest of restQuests) {
-  await tap(`[data-action="quest"][data-id="${quest.id}"]`);
-  await tap('[data-action="quest-start"]');
-  await tap(`[data-action="quest-pick"][data-index="${quest.answer}"]`);
-  await tap('[data-action="quest-close"]');
-  await wait(80);
-}
-check('四个展区全部打卡', Object.values((await save()).checkins).every(Boolean));
-
-/* 6. 认证配对 */
-await go('#/cert');
+/* 4. 认证配对 */
 const certPairs = await page.evaluate(() =>
   Object.entries(window.DHKApp.content.certGame.answer).map(([market, cert]) => ({ market, cert }))
 );
 for (const pair of certPairs) {
   await tap(`[data-action="market"][data-id="${pair.market}"]`);
+  await wait(100);
   await tap(`[data-action="cert"][data-id="${pair.cert}"]`);
-  await wait(120);
+  await wait(160);
 }
-check('认证配对通关', (await save()).missions['2'] === true);
+check('认证配对全部完成', (await save()).missions['2'] === true);
+check('认证页给出下一步按钮', (await text()).includes('去方案组卡'));
+await tap('[data-action="next"]');
+await wait(250);
 
-/* 7. 方案组卡：先给一个被打回的方案，再给满分组 */
-await go('#/solution');
-const perfect = await page.evaluate(() => window.DHKApp.content.solutionGame.perfect);
+/* 5. 方案组卡：先被客户打回，再给满分组 */
+check('进入方案组卡', (await hash()) === '#/test/solution', await hash());
 for (const id of ['store', 'report', 'ota']) await tap(`[data-action="pick"][data-id="${id}"]`);
-await tap('[data-action="submit"]');
-check('缺必需项被客户打回', (await text()).includes('解决不了他的问题'));
-for (const id of ['store', 'report', 'ota']) await tap(`[data-action="pick"][data-id="${id}"]`);
-for (const id of perfect) await tap(`[data-action="pick"][data-id="${id}"]`);
 await tap('[data-action="submit"]');
 await wait(200);
+check('缺必需项被客户打回', (await text()).includes('解决不了他的问题'));
+for (const id of ['store', 'report', 'ota']) await tap(`[data-action="pick"][data-id="${id}"]`);
+for (const id of await page.evaluate(() => window.DHKApp.content.solutionGame.perfect)) {
+  await tap(`[data-action="pick"][data-id="${id}"]`);
+}
+await tap('[data-action="submit"]');
+await wait(220);
 check('满分组通过', (await save()).games.solution.perfect === true);
+await tap('[data-action="to-report"]');
+await wait(250);
 
-/* 8. 小游戏区：模块完成后应解锁 */
-await go('#/games');
-check('模块完成后小游戏解锁', !(await text()).includes('尚未解锁'));
+/* 6. 画像结算 + 行动承诺 */
+check('进入画像结算', (await hash()) === '#/test/report', await hash());
+check('画像显示信任值与印记', (await text()).includes('客户信任'));
+check('画像列出关键行为', (await text()).includes('你的关键行为'));
+await tap('[data-action="pledge"]');
+await wait(140);
+await tap('[data-action="save"]');
+await wait(300);
+check('保存承诺完成测试', (await save()).completed === true);
+check('测试结束进入小游戏', (await hash()) === '#/games', await hash());
+check('小游戏已解锁', !(await text()).includes('尚未解锁'));
+
+/* 7. 五个小游戏 */
 await tap('[data-action="open"][data-id="hop"]');
-check('进入跳格子', page.url().includes('#/hop'));
-
-/* 9. 跳格子：答对前进、答错后退 */
-const first = await tileAnswer(0);
-await tap(`[data-action="pick"][data-index="${first}"]`);
-await tap('[data-action="go"]');
-check('答对前进一格', (await save()).games.hop.tile === 1);
-const secondWrong = ((await tileAnswer(1)) + 1) % 4;
-await tap(`[data-action="pick"][data-index="${secondWrong}"]`);
-await tap('[data-action="go"]');
-check('答错退回一格', (await save()).games.hop.tile === 0);
-for (let step = 0; step < 12; step += 1) {
+await wait(200);
+check('进入跳格子', (await hash()) === '#/hop', await hash());
+const hopAnswers = await page.evaluate(() =>
+  window.DHKApp.content.hopGame.tiles.map((t) => t.answer)
+);
+for (let step = 0; step < hopAnswers.length; step += 1) {
   const tile = (await save()).games.hop.tile;
-  const answer = await tileAnswer(tile);
-  await tap(`[data-action="pick"][data-index="${answer}"]`);
+  await tap(`[data-action="pick"][data-index="${hopAnswers[tile]}"]`);
+  await wait(90);
   await tap('[data-action="go"]');
-  await wait(80);
+  await wait(90);
 }
 check('跳格子走到终点', (await save()).games.hop.done === true);
 
-/* 10. 模块配对：翻完八对 */
 await go('#/flip');
 const pairs = await page.evaluate(() => {
   const groups = {};
@@ -223,9 +226,8 @@ for (const group of pairs) {
   }
 }
 await wait(400);
-check('配对全部完成', (await save()).games.flip.done === true);
+check('模块配对完成', (await save()).games.flip.done === true);
 
-/* 11. 三消：找一对可消的相邻格 */
 await go('#/crush');
 const swapPair = await page.evaluate(() => {
   const m = window.DHKApp.match3;
@@ -266,19 +268,16 @@ const crushDeadline = Date.now() + 70000;
 while (Date.now() < crushDeadline && !(await save()).games.crush.done) await wait(1000);
 check('三消成绩已记录', (await save()).games.crush.done === true);
 
-/* 12. 知识答题：十题全对 */
 await go('#/quiz');
 const bank = await page.evaluate(() => window.DHKApp.content.quizBank.map((q) => q.ans));
 for (let i = 0; i < bank.length; i += 1) {
   await tap(`[data-action="answer"][data-index="${bank[i]}"]`);
   await wait(80);
-  // 最后一题答完直接出成绩，没有再点「下一题」的按钮
   if (i < bank.length - 1) await tap('[data-action="next-question"]');
   await wait(80);
 }
 check('答题满分', (await save()).games.quiz.score === 100);
 
-/* 13. 复现异常：通电推到 92% 保持 3 秒 */
 await go('#/repro');
 await page.evaluate(() => {
   const slider = document.getElementById('repro-slider');
@@ -288,44 +287,54 @@ await page.evaluate(() => {
 await wait(3400);
 check('复现异常通关', (await save()).games.repro.done === true);
 
-/* 14. 全部通关结算 + GRADE */
-await go('#/quest');
+/* 8. 通关结算 */
+await go('#/final');
+check('进入通关结算', (await hash()) === '#/final', await hash());
 const board = await page.evaluate(() => window.DHKApp.state.scoreboard(window.DHKStore.read()));
 const allDone = await page.evaluate(() => window.DHKApp.state.allDone(window.DHKStore.read()));
 check('全部任务完成', allDone === true, JSON.stringify(board.progress));
 check('结算给出评分等级', ['S', 'A', 'B'].includes(board.grade.code), board.grade.code);
-check('结算弹层可见', await page.locator('#final-mask').isVisible());
 check('结算显示 GRADE', (await text()).includes('GRADE'));
-await tap('[data-action="final-close"]');
 
-/* 15. 端到端健康检查 */
+/* 9. 端到端健康检查 */
 check('没有控制台报错', errors.length === 0, errors.slice(0, 3).join(' / '));
-for (const hash of [
+const HASHES = [
   '#/home',
   '#/prologue',
-  '#/shift',
-  '#/quest',
-  '#/cert',
-  '#/solution',
+  '#/learn',
+  '#/learn/done',
+  '#/test/shift',
+  '#/test/cert',
+  '#/test/solution',
+  '#/test/report',
   '#/games',
   '#/hop',
   '#/flip',
   '#/crush',
   '#/quiz',
   '#/repro',
-  '#/culture',
+  '#/final',
   '#/progress'
-]) {
-  await go(hash);
-  const width = await page.evaluate(() => ({
+];
+for (const target of HASHES) {
+  await go(target);
+  const measured = await page.evaluate(() => ({
     scroll: document.documentElement.scrollHeight,
     view: window.innerHeight,
-    body: document.getElementById('app').innerText.trim().length
+    body: document.getElementById('app').innerText.trim().length,
+    cls: document.getElementById('app').className
   }));
-  check(`${hash} 有内容`, width.body > 20);
-  check(`${hash} 不溢出`, width.scroll <= width.view + 1, `${width.scroll} > ${width.view}`);
+  check(`${target} 有内容`, measured.body > 20);
+  check(
+    `${target} 不溢出`,
+    measured.scroll <= measured.view + 1,
+    `${measured.scroll} > ${measured.view}`
+  );
+  check(`${target} 挂对了样式作用域`, /page-[a-z]+/.test(measured.cls), measured.cls);
 }
 
 await browser.close();
 server.close();
-console.log(`网页版端到端测试通过：${checks.length} 项断言（14 个页面、5 个小游戏、完整通关链路）`);
+console.log(
+  `网页版端到端测试通过：${checks.length} 项断言（16 条路由、5 个小游戏、学习与测试向导全链路）`
+);

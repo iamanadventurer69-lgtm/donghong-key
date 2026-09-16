@@ -1,15 +1,15 @@
 /**
- * 网页版核心页面：首页、序章、质量值班、文化画像、探索档案。
- * 与小程序的 pages/home、prologue、shift、culture、progress 一一对应。
+ * 网页版核心页面：首页、序章、探索档案。
+ * 学习向导在 views-learn.js，画像测试在 views-test.js，小游戏在 views-games.js。
  *
- * 分页页面统一走 pagedView：状态放在闭包里，翻页 / 滑动只重渲染当前屏；
- * 小游戏那种高频交互不走这里（见 views-games.js 的直改 DOM 写法）。
+ * 整体节奏：序章 → 企业文化学习（4 个模块）→ 文化画像测试（值班/认证/组卡 + 结算）
+ * → 闯关小游戏 → 通关结算，一步一屏。
  */
 (function (App) {
   const { state, content, esc } = App;
   const store = () => window.DHKStore;
 
-  /** 分页控件（对应小程序里的 .pager）。 */
+  /** 分页控件（首页 / 序章 / 档案这类多屏页面用）。 */
   App.pager = function pager(panel, count, label) {
     const dots = Array.from(
       { length: count },
@@ -26,90 +26,121 @@
   };
 
   /**
-   * 分页视图。
-   * config: { count, render(panel), initial?(), onPanel?(next), mount?(root, panel), action?(action, hit, api) }
-   * api: { go(next), reset(), render() }
+   * 分页视图。config: { count, render(panel, {wide}), initial?, onPanel?, mount?, action?, wideAll? }
+   * 桌面（≥900px，且 wideAll !== false）会把所有屏并排铺开，省掉翻页。
    */
   function pagedView(name, config) {
     let panel = 0;
     const go = (next) => {
-      console.log(
-        'TRACE go ' +
-          name +
-          ' -> ' +
-          next +
-          ' :: ' +
-          new Error().stack.split('\n').slice(1, 5).join(' | ')
-      );
       const clamped = Math.max(0, Math.min(config.count - 1, next));
       if (clamped === panel) return;
       panel = clamped;
       if (config.onPanel) config.onPanel(panel);
       App.render();
     };
-    App.register(name, () => {
-      if (config.initial) panel = Math.max(0, Math.min(config.count - 1, config.initial()));
-      // 桌面端：所有屏一次铺开（省掉翻页），窄屏仍是一屏一屏翻
-      const wide = App.isWide() && config.wideAll !== false;
-      const indexes = wide ? Array.from({ length: config.count }, (_, i) => i) : [panel];
-      const panels = indexes.map((i) => config.render(i, { go, wide })).filter(Boolean);
-      if (panels.length === 0) return;
-      const html = panels.join('\n') + (wide ? '' : App.pager(panel, config.count, config.label));
-      if (!html) return;
-      App.mount(html, (root) => {
-        App.swipe(root, { next: () => go(panel + 1), prev: () => go(panel - 1) });
-        App.on(root, '[data-action]', 'click', (event, hit) => {
-          const action = hit.dataset.action;
-          if (action === 'next') {
-            return go(panel + 1);
-          }
-          if (action === 'prev') return go(panel - 1);
-          if (config.action)
-            config.action(action, hit, { go, panel, rerender: () => App.render() });
+    App.register(
+      name,
+      () => {
+        if (config.initial) panel = Math.max(0, Math.min(config.count - 1, config.initial()));
+        const wide = App.isWide() && config.wideAll !== false;
+        const indexes = wide ? Array.from({ length: config.count }, (_, i) => i) : [panel];
+        const panels = indexes.map((i) => config.render(i, { go, wide })).filter(Boolean);
+        if (panels.length === 0) return;
+        const html = panels.join('\n') + (wide ? '' : App.pager(panel, config.count, config.label));
+        App.mount(html, (root) => {
+          App.swipe(root, { next: () => go(panel + 1), prev: () => go(panel - 1) });
+          App.on(root, '[data-action]', 'click', (event, hit) => {
+            const action = hit.dataset.action;
+            if (action === 'next') return go(panel + 1);
+            if (action === 'prev') return go(panel - 1);
+            if (config.action)
+              config.action(action, hit, { go, panel, rerender: () => App.render() });
+          });
+          if (config.mount) config.mount(root, panel);
         });
-        if (config.mount) config.mount(root, panel);
-      });
-    });
-    return { go, reset: () => (panel = 0) };
+      },
+      config.cssPage
+    );
+  }
+
+  App.pagedView = pagedView;
+
+  /** 下一步该去哪：进入游戏时按「序章 → 学习 → 测试 → 小游戏 → 结算」推导。 */
+  App.nextAction = function nextAction(s) {
+    if (!s.prologueDone) return { hash: '#/prologue', label: '开启文化探索' };
+    if (!App.learnDone(s)) return { hash: '#/learn', label: '继续学习企业文化' };
+    if (!App.testDone(s)) {
+      return { hash: `#/test/${App.TEST_STEPS[App.testStep(s)].id}`, label: '继续文化画像测试' };
+    }
+    if (!state.allDone(s)) return { hash: '#/games', label: '去闯关小游戏' };
+    return { hash: '#/final', label: '查看通关结算 🏆' };
+  };
+
+  /** 三个入口的解锁与进度状态。 */
+  function entryState(s) {
+    const learn = App.learnProgress(s);
+    const learnDone = App.learnDone(s);
+    const testDone = App.testDone(s);
+    const games = ['hop', 'flip', 'crush', 'quiz', 'repro'].filter((id) =>
+      id === 'hop' ? s.games.hop.done : s.games[id].done
+    ).length;
+    return {
+      learn: { done: learnDone, tag: learnDone ? '已学完' : `${learn.done} / ${learn.total}` },
+      test: {
+        done: testDone,
+        locked: !learnDone,
+        tag: !learnDone ? '未解锁' : testDone ? '已完成' : `进行到第 ${App.testStep(s) + 1} 步`
+      },
+      games: {
+        done: state.allDone(s),
+        locked: !testDone,
+        tag: !testDone ? '未解锁' : `${games} / 5`
+      }
+    };
   }
 
   /* ==================== 首页 ==================== */
   pagedView('#/home', {
+    cssPage: 'home',
     count: 3,
     render(panel, options = {}) {
       const s = store().read();
       const percent = state.percent(s);
-      const progress = state.taskProgress(s);
-      const cultureDone = state.cultureDone(s);
-      const ids = ['hop', 'flip', 'crush', 'quiz', 'repro'];
-      const finished = ids.filter((id) => (id === 'hop' ? s.games.hop.done : s.games[id].done));
-      const cta = s.completed ? '回顾我的文化画像' : s.updatedAt ? '继续探索' : '开启文化探索';
-      // 宽屏是三栏并排，顶栏与存档提示只在第一栏出现
+      const entries = entryState(s);
+      const next = App.nextAction(s);
       const first = !options.wide || panel === 0;
-      const head = !first
-        ? ''
-        : `<div class="topline"><span class="eyebrow">EASTRON / CULTURE QUEST</span><span class="pill">文化探索员</span></div>`;
+      const head = first
+        ? '<div class="topline"><span class="eyebrow">EASTRON / CULTURE QUEST</span><span class="pill">文化探索员</span></div>'
+        : '';
       const warn = first ? App.warning() : '';
 
       if (panel === 1) {
         return `${head}${warn}
           <div class="panel">
-            <div class="title">一段旅程，<div>两个入口。</div></div>
-            <button class="card chapter-card stage-button" data-action="culture">
+            <div class="title">三个步骤，<div>一步一步来。</div></div>
+            <button class="card chapter-card stage-button" data-action="learn">
               <div class="chapter-head">
                 <span class="number">01</span><span class="section-title">企业文化</span>
-                <span class="tag">${cultureDone ? '已完成' : `${progress.done} / ${progress.total}`}</span>
+                <span class="tag">${entries.learn.tag}</span>
               </div>
-              <div class="muted">文化介绍 · 打卡答题 · 三个互动关卡</div>
-              <div class="small muted">愿景使命 · 产品模块 · 价值观 · 走向世界</div>
+              <div class="muted">学习四个模块：文化坐标 · 产品模块 · 价值观 · 走向世界</div>
+              <div class="small muted">先学清楚，再去做判断</div>
+            </button>
+            <button class="card chapter-card stage-button" data-action="test">
+              <div class="chapter-head">
+                <span class="number">02</span><span class="section-title">文化画像测试</span>
+                <span class="tag">${entries.test.tag}</span>
+              </div>
+              <div class="muted">质量值班 · 认证配对 · 方案组卡</div>
+              <div class="small muted">${entries.test.locked ? '学完企业文化后解锁' : '用学到的内容做判断，生成你的画像'}</div>
             </button>
             <button class="card chapter-card stage-button" data-action="games">
               <div class="chapter-head">
-                <span class="number">02</span><span class="section-title">闯关小游戏</span>
-                <span class="tag">${cultureDone ? `${finished.length} / ${ids.length}` : '未解锁'}</span>
+                <span class="number">03</span><span class="section-title">闯关小游戏</span>
+                <span class="tag">${entries.games.tag}</span>
               </div>
               <div class="muted">跳格子 · 配对 · 三消 · 答题 · 实验台</div>
-              <div class="small muted">${cultureDone ? '成绩计入通关结算' : '先完成企业文化模块'}</div>
+              <div class="small muted">${entries.games.locked ? '完成画像测试后解锁' : '成绩计入通关结算'}</div>
             </button>
           </div>`;
       }
@@ -125,7 +156,7 @@
             </div>
             <div class="values">${content.culture.values.map((v) => `<span>${esc(v.name)}</span>`).join('')}</div>
             <div class="card">
-              <div class="row"><span>第一阶段进度</span><span>${percent}%</span></div>
+              <div class="row"><span>探索进度</span><span>${percent}%</span></div>
               <div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div>
               <div class="small muted">${esc(content.company)}</div>
             </div>
@@ -142,7 +173,7 @@
           </div>
           <div class="network-space"><canvas id="hero-network"></canvas></div>
           <div class="culture"><div class="label">我们的使命</div><div class="quote">${esc(content.culture.mission)}</div></div>
-          <button class="primary" data-action="start">${cta} ↗</button>
+          <button class="primary" data-action="next-step">${next.label} ↗</button>
         </div>`;
     },
     mount(root, panel) {
@@ -152,10 +183,14 @@
         s.prologueDone ? Math.min(6, 2 + s.decisions.length) : 0
       );
     },
-    action(action) {
+    action(action, hit, api) {
       const s = store().read();
-      if (action === 'start') return App.goRoute(state.route(s));
-      if (action === 'culture') return App.go('#/quest');
+      if (action === 'next-step') return App.go(App.nextAction(s).hash);
+      if (action === 'learn') return App.go(App.learnDone(s) ? '#/learn/done' : '#/learn');
+      if (action === 'test') {
+        if (!App.learnDone(s)) return App.go('#/learn');
+        return App.go(`#/test/${App.TEST_STEPS[App.testStep(s)].id}`);
+      }
       if (action === 'games') return App.go('#/games');
       if (action === 'progress') return App.go('#/progress');
     }
@@ -163,9 +198,9 @@
 
   /* ==================== 序章 ==================== */
   pagedView('#/prologue', {
+    cssPage: 'prologue',
     count: 3,
-    // 序章是按顺序讲的，宽屏也保持一屏一屏翻（其它三页在桌面端会一次铺开）
-    wideAll: false,
+    wideAll: false, // 故事按顺序讲，宽屏也一屏一屏翻
     initial: () => store().read().prologue,
     onPanel: (panel) => store().write({ ...store().read(), prologue: panel }),
     render(panel, options = {}) {
@@ -182,7 +217,7 @@
           <div class="network-space"><canvas id="prologue-network"></canvas></div>
           <div class="narration">${esc(scene.text)}</div>
           <div class="culture"><div class="label">这是东鸿的使命</div><div class="quote">${esc(content.culture.mission)}</div></div>
-          <button class="primary" data-action="mission">${panel === 2 ? '领取使命密钥，进入第一章' : '追踪下一段能量 →'}</button>
+          <button class="primary" data-action="mission">${panel === 2 ? '领取使命密钥，开始学习企业文化' : '追踪下一段能量 →'}</button>
         </div>`;
     },
     mount(root, panel) {
@@ -190,231 +225,15 @@
     },
     action(action, hit, api) {
       if (action !== 'mission') return;
-      // 前两屏是「追踪下一段能量」，最后一屏才真的领密钥
       if (api.panel < 2) return api.go(api.panel + 1);
       store().dispatch('mission');
-      App.goRoute(state.route(store().read()));
-    }
-  });
-
-  /* ==================== 质量值班 ==================== */
-  let shiftResult = null;
-
-  function markDelta(choice) {
-    return Object.entries(choice.marks || {})
-      .map(([name, value]) => `${name} ${value > 0 ? '+' : '−'}${Math.abs(value)}`)
-      .join(' · ');
-  }
-
-  App.register('#/shift', () => {
-    const s = store().read();
-    if (!s.prologueDone) return App.go('#/prologue');
-    const card = state.currentCard(s);
-    // 刚判断完最后一张时还没有下一张卡，但结果页要先给玩家看完，点「下一份」再跳走
-    if (!card && !shiftResult) return App.go('#/culture');
-
-    const release = card && card.choices.find((choice) => choice.stamp === 'release');
-    const back = card && card.choices.find((choice) => choice.stamp === 'return');
-    const twoStamps = Boolean(card) && card.choices.length === 2 && Boolean(release && back);
-    const total = state.CARDS.length;
-    const index = Math.min(s.decisions.length + (shiftResult ? 0 : 1), total);
-    const last = s.decisions.length >= total;
-    const delta = (value) =>
-      `<span class="delta-num ${value < 0 ? 'minus' : 'plus'}">${value > 0 ? '+' : ''}${value}</span>`;
-
-    App.mount(
-      `
-      ${App.topbar(
-        'SHIFT 01 / 质量值班',
-        '<button class="text-button" data-action="rules">规则</button><button class="text-button" data-action="home">首页</button>'
-      )}
-      <div class="hud">
-        <div class="row"><span class="label">客户信任</span><span class="trust-num">${s.trust}</span></div>
-        <div class="trust-track"><div class="trust-fill" style="width:${s.trust}%"></div></div>
-        <div class="marks">${state.MARKS.map((name) => {
-          const value = s.marks[name] || 0;
-          return `<span class="mark ${value > 0 ? 'good' : ''} ${value < 0 ? 'bad' : ''}">${name} ${value > 0 ? '+' : ''}${value}</span>`;
-        }).join('')}</div>
-      </div>
-      ${
-        shiftResult
-          ? `<div class="sheet">
-              <div class="stamp ${shiftResult.stamp}">${shiftResult.stamp === 'release' ? '通过' : '退回'}</div>
-              <div class="sheet-title">${esc(shiftResult.label)}</div>
-              <div class="delta"><span class="small muted">客户信任</span>${delta(shiftResult.delta)}<span class="small muted">→ ${shiftResult.trust}</span></div>
-              <div class="sheet-body">${esc(shiftResult.text)}</div>
-              ${shiftResult.marks ? `<div class="mark-delta">印记变化 ${esc(shiftResult.marks)}</div>` : ''}
-            </div>`
-          : `<div class="sheet">
-              <div class="sheet-head">
-                <span class="sheet-tag">${esc(card.tag)}</span>
-                <span class="sheet-index">第 ${index} / ${total} 份</span>
-              </div>
-              <div class="sheet-title">${esc(card.title)}</div>
-              <div class="sheet-from">${esc(card.from)}</div>
-              <div class="sheet-body">${esc(card.body)}</div>
-              <div class="docs">${card.docs
-                .map(
-                  (doc) =>
-                    `<div class="doc"><span class="doc-label">${esc(doc.label)}</span><span class="doc-text">${esc(doc.text)}</span></div>`
-                )
-                .join('')}</div>
-            </div>`
-      }
-      ${
-        shiftResult
-          ? `<button class="primary" data-action="next">${last ? '结束值班，看文化画像' : '下一份 →'}</button>`
-          : `<div class="actions">${
-              twoStamps
-                ? `<button class="stamp-button release" data-action="choose" data-id="${release.id}">通过</button>
-                   <button class="stamp-button back" data-action="choose" data-id="${back.id}">退回</button>`
-                : card.choices
-                    .map(
-                      (choice) =>
-                        `<button class="option" data-action="choose" data-id="${choice.id}">${esc(choice.label)}</button>`
-                    )
-                    .join('')
-            }</div>`
-      }
-      <div class="hint">${shiftResult ? '判断已记录，后果会自己找上门' : '右滑通过 · 左滑退回 · 也可以点按钮'}</div>
-      <div class="rules-mask" id="rules-mask" hidden>
-        <div class="rules">
-          <div class="label">质量值班规则</div>
-          ${content.shifts[0].rules.map((rule) => `<div class="rule">· ${esc(rule)}</div>`).join('')}
-          <button class="secondary" data-action="rules-close">知道了</button>
-        </div>
-      </div>
-      ${App.warning()}`,
-      (root) => {
-        const decide = (choiceId) => {
-          const fresh = store().read();
-          const current = state.currentCard(fresh);
-          const choice = current && current.choices.find((item) => item.id === choiceId);
-          if (!choice) return;
-          const next = store().dispatch('choose', { cardId: current.id, choiceId: choice.id });
-          shiftResult = {
-            stamp: choice.stamp,
-            label: choice.label,
-            text: choice.result,
-            delta: choice.trust || 0,
-            trust: next.trust,
-            marks: markDelta(choice)
-          };
-          App.render();
-        };
-
-        App.swipe(root, {
-          next: () => !shiftResult && twoStamps && decide(release.id),
-          prev: () => !shiftResult && twoStamps && decide(back.id)
-        });
-        App.on(root, '[data-action]', 'click', (event, hit) => {
-          const action = hit.dataset.action;
-          if (action === 'choose') return decide(hit.dataset.id);
-          if (action === 'next') {
-            shiftResult = null;
-            App.render();
-            return;
-          }
-          if (action === 'rules') return (root.querySelector('#rules-mask').hidden = false);
-          if (action === 'rules-close') return (root.querySelector('#rules-mask').hidden = true);
-          if (action === 'home') return App.go('#/home');
-        });
-      }
-    );
-  });
-
-  /* ==================== 文化画像 ==================== */
-  pagedView('#/culture', {
-    count: 3,
-    render(panel, options = {}) {
-      const s = store().read();
-      const first = !options.wide || panel === 0;
-      if (!state.shiftDone(s)) {
-        queueMicrotask(() => App.goRoute(state.route(s)));
-        return '';
-      }
-      const portrait = state.portrait(s);
-      const head = first ? App.topbar('SHIFT REPORT / 值班结算') : '';
-      const markRows = portrait.ranked
-        .map(
-          (item) => `<div class="mark-row">
-            <span class="mark-name">${item.name}</span>
-            <div class="mark-track"><div class="mark-fill ${item.value < 0 ? 'bad' : ''}" style="width:${Math.min(100, Math.abs(item.value) * 20)}%"></div></div>
-            <span class="mark-val ${item.value < 0 ? 'bad' : ''}">${item.value > 0 ? '+' : ''}${item.value}</span>
-          </div>`
-        )
-        .join('');
-
-      if (panel === 1) {
-        return `${head}${first ? App.warning() : ''}
-          <div class="panel">
-            <div class="title">你的文化画像</div>
-            <div class="card"><div class="label">印记构成</div>${markRows}</div>
-            <div class="culture">
-              <div class="label">最高印记 · ${portrait.top || '尚无'}</div>
-              <div class="quote">${esc(portrait.style.title)}</div>
-            </div>
-            <div class="muted small">${esc(portrait.style.comment)}</div>
-            <div class="card highlights">
-              <div class="label">你的关键行为</div>
-              ${portrait.highlights
-                .map(
-                  (item) =>
-                    `<div class="highlight"><span class="highlight-title">${esc(item.card)}</span><span class="highlight-choice">${esc(item.choice)}</span></div>`
-                )
-                .join('')}
-            </div>
-            <button class="primary" data-action="next">选择我的行动承诺 →</button>
-          </div>`;
-      }
-
-      if (panel === 2) {
-        return `${head}${first ? App.warning() : ''}
-          <div class="panel">
-            <div class="title">把文化带回工作</div>
-            <div class="subtitle">选一项行动，保存你的文化画像。</div>
-            <div>${content.actions
-              .map(
-                (action) =>
-                  `<button class="option ${s.pledge === action ? 'selected' : ''}" data-action="pledge" data-value="${esc(action)}">${s.pledge === action ? '◉' : '○'} ${esc(action)}</button>`
-              )
-              .join('')}</div>
-            ${s.completed ? '<div class="small success">✓ 全部完成：序章、质量值班、文化画像已记录。</div>' : ''}
-            <button class="primary" data-action="save" ${s.pledge ? '' : 'disabled'}>${s.completed ? '更新行动承诺' : '保存承诺，完成探索'}</button>
-            <div class="row">
-              <button class="text-button" data-action="progress">探索档案</button>
-              <button class="text-button" data-action="home">返回首页</button>
-            </div>
-          </div>`;
-      }
-
-      return `${head}${first ? App.warning() : ''}
-        <div class="panel">
-          <div class="seal"><div class="seal-core">${portrait.trust}</div></div>
-          <div class="title center">${esc(portrait.level.label)}</div>
-          <div class="subtitle center">${esc(portrait.level.comment)}</div>
-          <div class="card">
-            <div class="row"><span class="label">客户信任</span><span class="trust-num">${portrait.trust} / 100</span></div>
-            <div class="progress-track"><div class="progress-fill" style="width:${portrait.trust}%"></div></div>
-            <div class="small muted">信任值由你今天每一次判断累积而成，不会被人工修正。</div>
-          </div>
-          <button class="primary" data-action="next">看我的文化画像 →</button>
-        </div>`;
-    },
-    action(action, hit, api) {
-      const s = store().read();
-      if (action === 'pledge') {
-        store().write({ ...s, pledge: hit.dataset.value });
-        return api.rerender();
-      }
-      if (action === 'save') return void (store().dispatch('complete', s.pledge), api.rerender());
-      if (action === 'progress') return App.go('#/progress');
-      if (action === 'home') return App.go('#/home');
+      App.go('#/learn');
     }
   });
 
   /* ==================== 探索档案 ==================== */
   pagedView('#/progress', {
+    cssPage: 'progress',
     count: 4,
     render(panel, options = {}) {
       const s = store().read();
@@ -428,6 +247,7 @@
         const value = s.marks[name] || 0;
         return `<span class="mark ${value > 0 ? 'good' : ''} ${value < 0 ? 'bad' : ''}">${name} ${value > 0 ? '+' : ''}${value}</span>`;
       }).join('');
+      const learn = App.learnProgress(s);
       const scores = {
         hop: s.games.hop.done ? `通关 · 错 ${s.games.hop.wrong} 次` : '未完成',
         flip: s.games.flip.done
@@ -479,7 +299,7 @@
             <div class="title">我的行动与存档</div>
             <div class="culture">
               <div class="label">我的行动承诺</div>
-              <div class="quote">${esc(s.pledge || '完成第一章后，记录你的行动承诺。')}</div>
+              <div class="quote">${esc(s.pledge || '完成文化画像测试后，这里会记录你的行动承诺。')}</div>
             </div>
             <div class="card">
               <div class="label">各局成绩</div>
@@ -496,7 +316,7 @@
           </div>`;
       }
 
-      return `${head}${first ? App.warning() : ''}
+      return `${head}${App.warning()}
         <div class="panel">
           <div class="title">每一步，都留下印记。</div>
           <div class="card">
@@ -509,16 +329,17 @@
             <div class="marks">${marks}</div>
           </div>
           <div class="card">
-            <div class="row"><span>任务进度</span><span class="trust-num">${progress.done} / ${progress.total}</span></div>
-            <div class="progress-track"><div class="progress-fill" style="width:${Math.round((progress.done / progress.total) * 100)}%"></div></div>
+            <div class="row"><span>企业文化学习</span><span class="trust-num">${learn.done} / ${learn.total} 个模块</span></div>
+            <div class="progress-track"><div class="progress-fill" style="width:${Math.round((learn.done / learn.total) * 100)}%"></div></div>
+            <div class="row small"><span>全部任务</span><span>${progress.done} / ${progress.total}</span></div>
             <div class="small muted">${nextTask ? '接下来：' + esc(nextTask.name) : '全部任务已完成 🏆'}</div>
           </div>
-          <button class="primary" data-action="resume">${s.completed ? '回顾我的文化画像' : '继续上次探索 →'}</button>
+          <button class="primary" data-action="resume">${App.nextAction(s).label} →</button>
         </div>`;
     },
     action(action) {
       const s = store().read();
-      if (action === 'resume') return App.goRoute(state.route(s));
+      if (action === 'resume') return App.go(App.nextAction(s).hash);
       if (action === 'home') return App.go('#/home');
       if (action === 'reset' && window.confirm('清除本机存档、重新开始探索？此操作无法撤销。')) {
         store().reset();

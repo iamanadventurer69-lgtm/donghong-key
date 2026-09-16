@@ -6,9 +6,12 @@
   "scripts": {
     "test": "node --test tests/*.test.js",
     "check": "node tests/check.js",
+    "build:web": "node tools/build-web.mjs",
+    "web": "npm run build:web && node tools/serve-web.mjs",
+    "test:web": "node tools/build-web.mjs --check && node tests/web-smoke.mjs",
     "format": "prettier --write . && node tools/format-wxml.mjs",
     "format:check": "prettier --check . && node tools/format-wxml.mjs --check",
-    "verify": "npm run format:check && npm run check && npm test"
+    "verify": "npm run format:check && npm run check && npm run build:web -- --check && npm test"
   },
   "devDependencies": {
     "prettier": "^3.9.6"

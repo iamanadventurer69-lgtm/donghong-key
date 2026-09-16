@@ -2,7 +2,28 @@
 
 面向浙江东鸿电子股份有限公司内部员工的企业文化探索 MVP。**原生微信小程序**，WXML / WXSS / JavaScript + Canvas 2D，不含 H5、WebView、游戏引擎或远程依赖。运行小程序无需 npm 安装或后端服务。
 
-## 快速运行
+## 两种形态：小程序版 + 网页版
+
+| | 小程序版（`miniprogram/`） | 网页版（`web/`） |
+| --- | --- | --- |
+| 运行环境 | 微信开发者工具 / 微信客户端 | 任意现代浏览器，可直接部署到静态托管 |
+| 规则与文案 | `data/content.js`、`utils/state.js`、`utils/match3.js` | **同一份代码**（构建时打包进 `web/bundle.js`） |
+| 存档 | 微信 Storage | 浏览器 localStorage（同一个键、同一套清洗规则） |
+| 页面 | 14 个 WXML 页面 | 14 个 hash 路由（`#/home`…`#/progress`） |
+| 样式 | 各页 WXSS | 由 WXSS 转译生成 `web/styles.css`，两端视觉一致 |
+
+网页版这样跑起来：
+
+```sh
+npm run web        # 构建 + 启动本地静态服务器（默认 http://127.0.0.1:4173/）
+npm run build:web  # 只重新生成 web/bundle.js 与 web/styles.css
+npm run test:web   # 用 Chromium 端到端跑一遍（64 项断言，需要 Playwright）
+```
+
+改动小程序里的内容或规则后要重新 `npm run build:web`——`npm run verify` 会校验产物是否过期。
+网页版也可以直接丢到静态托管（Cloudflare Pages / GitHub Pages / 任意对象存储）当作网址分享。
+
+## 快速运行（小程序版）
 
 1. 安装并打开[微信开发者工具（稳定版）](https://developers.weixin.qq.com/miniprogram/dev/devtools/download.html)。
 2. 选择「导入项目」，选择本 README 所在的 `donghong-key` 文件夹，确保目录内有 `project.config.json`。
@@ -98,7 +119,18 @@ miniprogram/
   pages/culture/          文化画像（信任值、印记、行动承诺）
   pages/progress/         进度与文化档案
 tests/                   无额外依赖的逻辑、页面控制器与静态检查
+  tests/web-smoke.mjs    网页版端到端测试（Chromium，需要 Playwright）
+web/                     网页版
+  index.html             单页外壳
+  bundle.js              构建产物：打包进来的共享内核（content / state / match3）
+  styles.css             构建产物：由小程序 WXSS 转译
+  ui.js / canvas.js      路由、模板挂载、事件委托、两处 Canvas 效果
+  views-core.js          首页 / 序章 / 质量值班 / 文化画像 / 探索档案
+  views-culture.js       企业文化模块 / 认证配对 / 预算组卡
+  views-games.js         小游戏区 / 跳格子 / 配对 / 三消 / 答题 / 复现异常
 tools/format-wxml.mjs    WXML 排版器（零依赖）
+tools/build-web.mjs      网页版构建：打包共享内核 + 转译 WXSS
+tools/serve-web.mjs      网页版本地静态服务器
 ```
 
 新增文案、模块说明、测试记录优先修改 `data/content.js`。增加新的游戏规则时同步修改 `utils/state.js` 和相应页面。Canvas 和拖拽均按容器尺寸/屏幕坐标计算；拖拽提供点选替代操作。

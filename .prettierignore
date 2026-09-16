@@ -4,3 +4,5 @@ VALIDATION.md
 发布指南.md
 node_modules/
 dist/
+web/bundle.js
+web/styles.css

@@ -1,0 +1,208 @@
+/* 方案组卡：预算三张，六张能力卡两列。 */
+.npc {
+  flex-shrink: 0;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 11px;
+  background: #fff;
+  border: 1px solid #cce7f7;
+  border-radius: 14px;
+}
+
+.npc-head {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #e6f5ff;
+  color: #278fc5;
+  font-size: 17px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 38px;
+}
+
+.npc-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.npc-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1e7fb0;
+}
+
+.npc-text {
+  font-size: 11px;
+  line-height: 1.45;
+  color: #3d6a83;
+}
+
+.budget {
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.budget-label {
+  font-size: 11px;
+  color: #6a8ea4;
+}
+
+.budget-num {
+  font:
+    700 15px Menlo,
+    monospace;
+  color: #1c7fb4;
+}
+
+.cards {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  align-content: center;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 10px;
+  background: #fff;
+  border: 1.5px solid #cfe3f2;
+  border-radius: 12px;
+  text-align: left;
+}
+
+.card.picked {
+  border-color: #1f9d6b;
+  background: #f0faf5;
+  box-shadow: 0 0 0 3px #1f9d6b1f;
+}
+
+.card-name {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: #15527a;
+  line-height: 1.3;
+}
+
+.card.picked .card-name {
+  color: #146b48;
+}
+
+.card-note {
+  font-size: 10px;
+  color: #7d9cb0;
+  line-height: 1.35;
+}
+
+.feedback {
+  flex-shrink: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border-left: 3px solid;
+}
+
+.feedback.warn {
+  background: #fff7e8;
+  border-color: #d9903f;
+  color: #8a5a1c;
+}
+
+.feedback.bad {
+  background: #fdeeea;
+  border-color: #c2543f;
+  color: #8f4531;
+}
+
+.feedback.good {
+  background: #eaf9f2;
+  border-color: #1a8f5f;
+  color: #206a4c;
+}
+
+.hint {
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 10px;
+  color: #7d9cb0;
+}
+
+.mask {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: #0e3a5733;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+}
+
+.sheet {
+  width: 100%;
+  background: #fff;
+  border-radius: 20px;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: pop-up 0.28s ease-out;
+}
+
+.win-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #146b48;
+  text-align: center;
+}
+
+.win-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #2b5f7d;
+}
+
+.win-value {
+  align-self: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1c7fb4;
+  background: #eaf7ff;
+  border-radius: 20px;
+  padding: 5px 14px;
+}
+
+@keyframes pop-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-height: 640px) {
+  .card {
+    padding: 7px 8px;
+  }
+  .card-name {
+    font-size: 12px;
+  }
+  .npc {
+    padding: 7px 9px;
+  }
+}

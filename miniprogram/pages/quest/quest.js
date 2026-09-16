@@ -75,10 +75,7 @@ Page({
     }
     if (kind === 'page') {
       const task = state.tasks(store.read()).find((item) => item.id === id);
-      if (!task || !task.page) return;
-      // 二三章入口在首页，用 reLaunch 避免在栈里叠一层首页。
-      if (id === 'missions') wx.reLaunch({ url: task.page });
-      else wx.navigateTo({ url: task.page });
+      if (task && task.page) wx.navigateTo({ url: task.page });
       return;
     }
     const quest = content.quests.find((item) => item.id === id);

@@ -1,0 +1,41 @@
+<view class="viewport">
+  <view class="topline">
+    <text class="eyebrow">{{game.code}} / {{game.title}}</text>
+    <button class="text-button" bindtap="back">返回闯关</button>
+  </view>
+  <view class="npc">
+    <view class="npc-head">{{game.npc.avatar}}</view>
+    <view class="npc-main">
+      <text class="npc-name">{{game.npc.name}} · {{game.npc.role}}</text>
+      <text class="npc-text">{{game.brief}}</text>
+    </view>
+  </view>
+  <view class="budget">
+    <text class="budget-label">预算</text>
+    <text class="budget-num">{{pickedCount}} / {{quota}} 张</text>
+  </view>
+  <view class="cards">
+    <button
+      wx:for="{{cards}}"
+      wx:key="id"
+      class="card {{item.picked?'picked':''}}"
+      data-id="{{item.id}}"
+      bindtap="tapCard"
+    >
+      <text class="card-name">{{item.picked?'◉':'○'}} {{item.name}}</text>
+      <text class="card-note">{{item.note}}</text>
+    </button>
+  </view>
+  <view class="feedback {{feedbackKind}}" wx:if="{{feedback}}">{{feedback}}</view>
+  <view class="hint" wx:else>选 {{quota}} 张最贴近客户需求的能力卡，不堆功能</view>
+  <button class="primary" wx:if="{{!done}}" bindtap="submit">提交方案给客户</button>
+  <button class="primary" wx:else bindtap="finish">回到闯关中心 →</button>
+  <view class="mask" wx:if="{{done}}">
+    <view class="sheet">
+      <view class="win-title">{{perfect?'🌟 客户非常满意':'✅ 客户接受了方案'}}</view>
+      <view class="win-text">{{feedback}}</view>
+      <view class="win-value">本次文化印记 · {{game.value}}</view>
+      <button class="primary" bindtap="finish">回到闯关中心 →</button>
+    </view>
+  </view>
+</view>

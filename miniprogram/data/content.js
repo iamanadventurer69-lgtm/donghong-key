@@ -342,48 +342,56 @@ module.exports = {
     }
   ],
 
-  // 第二、三章的剧情与判断，按阶段 id 索引；答对才点亮关卡。
-  missions: {
-    2: {
-      id: '2',
-      code: 'CHAPTER 02',
-      title: '世界之门',
-      direction: '国际认证、全球布局',
-      npc: { name: '认证专员 周岚', role: '质量与认证', avatar: '周' },
-      lines: [
-        '欢迎来到全球认证中心。产品走向世界，首先要经得起不同市场的标准。',
-        '请帮我为欧洲客户匹配正确的认证通行证。'
-      ],
-      question: '产品进入欧盟市场，以下哪组认证最符合本关的教学情境？',
-      options: [
-        { id: 'eu', text: 'MID / CE', correct: true },
-        { id: 'us', text: 'UL / ETL', correct: false },
-        { id: 'au', text: 'SAA / 其他地区标识', correct: false }
-      ],
-      success: '匹配成功。国际认证不是一张标签，而是产品质量、规范与可靠性的长期承诺。',
-      value: '守正 · 精进',
-      color: '#4da8d5'
-    },
-    3: {
-      id: '3',
-      code: 'CHAPTER 03',
-      title: '客户之光',
-      direction: '行业聚焦、定制化方案',
-      npc: { name: '方案顾问 陈默', role: '客户现场', avatar: '陈' },
-      lines: [
-        '数据中心客户需要看清每一回路的能耗，并在异常时及时告警。',
-        '请选择最贴近真实需求的方案组合，不需要堆叠无关功能。'
-      ],
-      question: '哪一种方案更体现「行业聚焦、定制化方案」？',
-      options: [
-        { id: 'fit', text: '多回路计量 + 电能质量监测 + 异常告警', correct: true },
-        { id: 'max', text: '把所有可选功能全部加入', correct: false },
-        { id: 'basic', text: '只提供总用电量，忽略客户的回路需求', correct: false }
-      ],
-      success: '选择正确。成就客户可持续增长，来自理解场景后提供真正适合的方案。',
-      value: '务实 · 创新',
-      color: '#57b99a'
-    }
+  // 第二章「世界之门」：把三张认证卡配到三个市场（点市场，再点认证卡）。
+  certGame: {
+    code: 'CHAPTER 02',
+    title: '世界之门',
+    direction: '国际认证、全球布局',
+    npc: { name: '认证专员 周岚', role: '质量与认证', avatar: '周' },
+    intro: '产品走向世界，先要经得起不同市场的标准。帮我把三张认证卡配到对应的市场。',
+    markets: [
+      { id: 'eu', name: '欧盟市场', hint: '计量器具指令 + CE 标志' },
+      { id: 'na', name: '北美市场', hint: '安全认证体系，验厂很严' },
+      { id: 'au', name: '澳洲市场', hint: '电气合规与注册标识' }
+    ],
+    certs: [
+      { id: 'mid', name: 'MID / CE', note: '欧盟计量与合规' },
+      { id: 'ul', name: 'UL / ETL', note: '北美安全认证' },
+      { id: 'saa', name: 'SAA / RCM', note: '澳洲合规标识' }
+    ],
+    // 正确配对：市场 → 认证卡
+    answer: { eu: 'mid', na: 'ul', au: 'saa' },
+    wrong: '这张卡对应的是另一个市场。再看一眼市场的合规要求。',
+    success: '三张卡都放对了。国际认证不是一张标签，而是质量与可靠性的长期承诺。',
+    value: '守正 · 精进',
+    color: '#4da8d5'
+  },
+
+  // 第三章「客户之光」：预算三张卡，从六张能力里挑最贴需求的组合。
+  solutionGame: {
+    code: 'CHAPTER 03',
+    title: '客户之光',
+    direction: '行业聚焦、定制化方案',
+    npc: { name: '方案顾问 陈默', role: '客户现场', avatar: '陈' },
+    brief: '数据中心客户：要看清每一个回路的能耗，异常时要立刻告警。预算只够选三张能力卡。',
+    quota: 3,
+    cards: [
+      { id: 'loops', name: '多回路计量', note: '每个回路单独计量' },
+      { id: 'quality', name: '电能质量监测', note: '谐波、电压暂降' },
+      { id: 'alarm', name: '异常告警', note: '越限立即通知到人' },
+      { id: 'store', name: '本地数据存储', note: '保存 30 天原始数据' },
+      { id: 'report', name: '自动报表', note: '按月生成能耗月报' },
+      { id: 'ota', name: '远程升级', note: '批量升级固件' }
+    ],
+    // 必需项：看不见回路与告警，方案就不成立
+    required: ['loops', 'alarm'],
+    // 满分组：再补上电能质量，才是真正贴住场景的组合
+    perfect: ['loops', 'quality', 'alarm'],
+    rejected: '客户看完直摇头：回路看不清、异常也没人通知，这个方案解决不了他的问题。',
+    accepted: '客户接受了方案：回路与告警都到位，电能质量留到二期再谈。',
+    success: '客户非常满意：回路、电能质量、告警一次到位，方案进了标杆案例。',
+    value: '务实 · 创新',
+    color: '#57b99a'
   },
 
   // 文化印记的行动承诺选项，也是完成整局的最后一步。

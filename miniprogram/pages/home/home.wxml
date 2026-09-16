@@ -29,7 +29,7 @@
         <text class="tag">{{s.missions['2']?'已点亮':'进入'}}</text>
       </view>
       <view class="muted">国际认证、全球布局</view>
-      <view class="small muted">NPC 对话 · 认证匹配</view>
+      <view class="small muted">认证配对 · 三个市场</view>
     </button>
     <button class="card chapter-card stage-button" data-stage="3" bindtap="openMission">
       <view class="chapter-head">
@@ -38,7 +38,7 @@
         <text class="tag">{{s.missions['3']?'已点亮':'进入'}}</text>
       </view>
       <view class="muted">行业聚焦、定制化方案</view>
-      <view class="small muted">NPC 对话 · 场景方案</view>
+      <view class="small muted">预算组卡 · 六选三</view>
     </button>
     <button class="card chapter-card stage-button" bindtap="quest">
       <view class="chapter-head">

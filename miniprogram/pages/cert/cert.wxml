@@ -1,0 +1,45 @@
+<view class="viewport">
+  <view class="topline">
+    <text class="eyebrow">{{game.code}} / {{game.title}}</text>
+    <button class="text-button" bindtap="back">返回闯关</button>
+  </view>
+  <view class="npc">
+    <view class="npc-head">{{game.npc.avatar}}</view>
+    <view class="npc-main">
+      <text class="npc-name">{{game.npc.name}} · {{game.npc.role}}</text>
+      <text class="npc-text">{{game.intro}}</text>
+    </view>
+  </view>
+  <view class="markets {{shake?'shake':''}}">
+    <view
+      wx:for="{{markets}}"
+      wx:key="id"
+      class="market {{item.done?'done':''}} {{selected===item.id?'sel':''}}"
+      data-id="{{item.id}}"
+      bindtap="tapMarket"
+    >
+      <view class="market-main">
+        <text class="market-name">{{item.name}}</text>
+        <text class="market-hint">{{item.hint}}</text>
+      </view>
+      <text class="market-cert">{{item.cert}}</text>
+    </view>
+  </view>
+  <view class="certs">
+    <button wx:for="{{certs}}" wx:key="id" class="cert {{item.used?'used':''}}" data-id="{{item.id}}" bindtap="tapCert">
+      <text class="cert-name">{{item.name}}</text>
+      <text class="cert-note">{{item.note}}</text>
+    </button>
+  </view>
+  <view class="feedback" wx:if="{{feedback}}">{{feedback}}</view>
+  <view class="hint" wx:else>先点一个市场，再点一张认证卡 · 已配对 {{matchedCount}} / {{total}}</view>
+  <view class="mask" wx:if="{{done}}">
+    <view class="sheet">
+      <view class="win-title">✅ 三张卡都放对了</view>
+      <view class="win-text">{{game.success}}</view>
+      <view class="win-value">本次文化印记 · {{game.value}}</view>
+      <button class="primary" bindtap="next">去下一关：客户之光 →</button>
+      <button class="secondary" bindtap="back">回到闯关中心</button>
+    </view>
+  </view>
+</view>

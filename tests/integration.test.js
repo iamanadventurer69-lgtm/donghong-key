@@ -66,8 +66,10 @@ function finishEverything(store) {
   c.quizBank.forEach((question, index) =>
     store.dispatch('quizAnswer', { index, choice: question.ans })
   );
-  store.dispatch('missionQuiz', '2:correct');
-  store.dispatch('missionQuiz', '3:correct');
+  for (const [market, cert] of Object.entries(c.certGame.answer)) {
+    store.dispatch('certMatch', { market, cert });
+  }
+  store.dispatch('solution', { picks: c.solutionGame.perfect });
 }
 
 const ev = (id) => ({ currentTarget: { dataset: { id } } });
@@ -125,16 +127,24 @@ test('值班闭环：六份材料盖章 → 文化画像 → 行动承诺', () =
   assert.equal(home.data.shiftTag, '已点亮');
 
   // 两个可选章节答对后到 100%，首页继续探索直接去画像。
-  const mission = page('mission');
-  mission.onLoad({ stage: '2' });
-  mission.next();
-  mission.next();
-  assert.equal(mission.data.phase, 'quiz');
-  mission.answer(ev('eu'));
+  const cert = page('cert');
+  cert.onLoad();
+  cert.onShow();
+  for (const [market, answer] of Object.entries(c.certGame.answer)) {
+    cert.tapMarket({ currentTarget: { dataset: { id: market } } });
+    cert.tapCert({ currentTarget: { dataset: { id: answer } } });
+  }
   assert.equal(store.read().missions['2'], true);
-  mission.onLoad({ stage: '3' });
-  mission.answer(ev('fit'));
+  assert.equal(cert.data.done, true);
+
+  const solution = page('solution');
+  solution.onShow();
+  c.solutionGame.perfect.forEach((id) => {
+    solution.tapCard({ currentTarget: { dataset: { id } } });
+  });
+  solution.submit();
   assert.equal(store.read().missions['3'], true);
+  assert.equal(solution.data.perfect, true);
 
   home.onShow();
   assert.equal(home.data.percent, 100);
@@ -408,4 +418,83 @@ test('知识答题：十题答完给总分与逐题回顾，可以重新挑战',
   assert.equal(quiz.data.dots[0].state, 'wrong');
   quiz.next();
   assert.equal(quiz.data.index, 1);
+});
+
+test('认证配对：先选市场再选卡，配错会抖动并解释，配完可进下一关', () => {
+  const { store, routes } = setup();
+  const cert = page('cert');
+  cert.onLoad();
+  cert.onShow();
+  assert.equal(cert.data.markets.length, c.certGame.markets.length);
+  assert.equal(cert.data.certs.length, c.certGame.certs.length);
+
+  // 没选市场就点卡
+  cert.tapCert({ currentTarget: { dataset: { id: c.certGame.certs[0].id } } });
+  assert.match(cert.data.feedback, /先点左边的市场/);
+
+  // 选错卡：抖动 + 记错 + 不点亮
+  const market = c.certGame.markets[0].id;
+  const wrong = c.certGame.certs.find((item) => item.id !== c.certGame.answer[market]).id;
+  cert.tapMarket({ currentTarget: { dataset: { id: market } } });
+  cert.tapCert({ currentTarget: { dataset: { id: wrong } } });
+  assert.equal(cert.data.shake, true);
+  assert.match(cert.data.feedback, /另一个市场/);
+  assert.equal(store.read().games.cert.matched.length, 0);
+  assert.equal(store.read().mistakes, 1);
+  cert.again();
+
+  // 配对成功：市场卡片显示认证名，卡变灰
+  for (const [id, answer] of Object.entries(c.certGame.answer)) {
+    cert.tapMarket({ currentTarget: { dataset: { id } } });
+    cert.tapCert({ currentTarget: { dataset: { id: answer } } });
+  }
+  assert.equal(cert.data.matchedCount, c.certGame.markets.length);
+  assert.equal(cert.data.done, true);
+  assert.equal(
+    cert.data.markets.every((item) => item.done),
+    true
+  );
+  assert.equal(
+    cert.data.certs.every((item) => item.used),
+    true
+  );
+  cert.next();
+  assert.equal(routes.at(-1), '/pages/solution/solution');
+  cert.onUnload();
+});
+
+test('方案组卡：预算限制、必需项校验与满分组反馈', () => {
+  const { store, routes } = setup();
+  const solution = page('solution');
+  solution.onShow();
+
+  // 超过预算被拦下
+  const ids = c.solutionGame.cards.map((card) => card.id);
+  ids.slice(0, 3).forEach((id) => solution.tapCard({ currentTarget: { dataset: { id } } }));
+  solution.tapCard({ currentTarget: { dataset: { id: ids[3] } } });
+  assert.match(solution.data.feedback, /预算只有 3 张卡/);
+  assert.equal(solution.data.pickedCount, 3);
+
+  // 张数不够不能提交
+  solution.tapCard({ currentTarget: { dataset: { id: ids[0] } } });
+  solution.submit();
+  assert.match(solution.data.feedback, /现在选了 2 张/);
+
+  // 缺必需项：客户打回，但不卡流程
+  solution.tapCard({ currentTarget: { dataset: { id: 'report' } } });
+  solution.tapCard({ currentTarget: { dataset: { id: 'ota' } } });
+  solution.tapCard({ currentTarget: { dataset: { id: 'store' } } });
+  solution.submit();
+  assert.equal(solution.data.done, false);
+  assert.match(solution.data.feedback, /解决不了他的问题/);
+
+  // 满分组
+  solution.onShow();
+  c.solutionGame.perfect.forEach((id) => solution.tapCard({ currentTarget: { dataset: { id } } }));
+  solution.submit();
+  assert.equal(solution.data.done, true);
+  assert.equal(solution.data.perfect, true);
+  assert.equal(store.read().games.solution.picks.length, c.solutionGame.quota);
+  solution.finish();
+  assert.equal(routes.at(-1), '/pages/quest/quest');
 });

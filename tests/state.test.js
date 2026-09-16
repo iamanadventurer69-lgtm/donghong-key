@@ -22,6 +22,26 @@ function play(choices) {
   return s;
 }
 
+/** 走完两个章节小游戏：认证全配对 + 满分组方案。 */
+function finishChapters(s) {
+  let next = s;
+  for (const [market, cert] of Object.entries(content.certGame.answer)) {
+    next = advance(next, 'certMatch', { market, cert });
+  }
+  return advance(next, 'solution', { picks: content.solutionGame.perfect });
+}
+
+/** 两个章节小游戏对应的进度事件，供「每一步都可达」的用例使用。 */
+function chapterSteps() {
+  return [
+    ...Object.entries(content.certGame.answer).map(([market, cert]) => [
+      'certMatch',
+      { market, cert }
+    ]),
+    ['solution', { picks: content.solutionGame.perfect }]
+  ];
+}
+
 /** 好路径：拦下超阈值批次、重装模块、补高温工况、拒绝先发、交付方法、方案对口。 */
 const GOOD = ['return', 'refit', 'extra', 'refuse', 'standard', 'fit'];
 /** 坏路径：一路"先发再说"。 */
@@ -34,8 +54,7 @@ test('完整路径：序章、六份材料盖章、二三章、行动承诺后�
   assert.equal(percent(s), 70);
   assert.equal(route(s), '/pages/culture/culture');
 
-  s = advance(s, 'missionQuiz', '2:correct');
-  s = advance(s, 'missionQuiz', '3:correct');
+  s = finishChapters(s);
   assert.equal(percent(s), 90);
   assert.equal(s.completed, false);
 
@@ -116,7 +135,7 @@ test('缺失、旧版本和伪造存档安全回退', () => {
     { version: 2, decisions: 'nope', completed: true }
   ]) {
     const s = normalize(input);
-    assert.equal(s.version, 4);
+    assert.equal(s.version, 5);
     assert.equal(s.completed, false);
     assert.equal(s.decisions.length, 0);
     assert.equal(s.trust, content.shifts[0].trust);
@@ -158,13 +177,14 @@ test('每个进度检查点恢复后的下一步保持可达', () => {
   let previous = percent(s);
   const steps = [
     ...GOOD.map((id) => ['choose', id]),
-    ['missionQuiz', '2:correct'],
-    ['missionQuiz', '3:correct'],
+    ...chapterSteps(),
     ['complete', content.actions[1]]
   ];
   for (const [event, payload] of steps) {
     const card = currentCard(s);
-    const args = event === 'choose' ? { cardId: card.id, choiceId: payload } : payload;
+    let args = payload;
+    if (event === 'choose') args = { cardId: card.id, choiceId: payload };
+    if (event === 'complete') args = content.actions[1];
     s = normalize(JSON.parse(JSON.stringify(advance(s, event, args))));
     assert.ok(percent(s) >= previous);
     previous = percent(s);
@@ -173,24 +193,73 @@ test('每个进度检查点恢复后的下一步保持可达', () => {
   assert.equal(percent(s), 100);
 });
 
-test('第二、三章的答题独立保存，并给对应价值观记一分', () => {
+test('第二章认证配对：错配记错并解释，配满三对才通关', () => {
   let s = started();
-  s = advance(s, 'missionQuiz', '2:wrong');
+  const answer = content.certGame.answer;
+  const [firstMarket] = Object.keys(answer);
+  const wrongCert = content.certGame.certs.find((cert) => cert.id !== answer[firstMarket]).id;
+
+  s = advance(s, 'certMatch', { market: firstMarket, cert: wrongCert });
   assert.equal(s.missions['2'], false);
   assert.equal(s.mistakes, 1);
-  assert.equal(s.marks.守正, 0);
+  assert.equal(s.games.cert.matched.length, 0);
 
-  s = advance(s, 'missionQuiz', '2:correct');
+  s = advance(s, 'certMatch', { market: firstMarket, cert: answer[firstMarket] });
+  assert.deepEqual(s.games.cert.matched, [firstMarket]);
+  assert.equal(s.missions['2'], false, '配对一个市场还不算通关');
+
+  // 同一个市场重复提交不再计数
+  s = advance(s, 'certMatch', { market: firstMarket, cert: answer[firstMarket] });
+  assert.equal(s.mistakes, 1);
+
+  for (const market of Object.keys(answer)) {
+    s = advance(s, 'certMatch', { market, cert: answer[market] });
+  }
   assert.equal(s.missions['2'], true);
   assert.equal(s.marks.守正, 1);
   assert.equal(s.marks.精进, 1);
   assert.equal(s.marks.创新, 0);
+  assert.deepEqual(normalize(JSON.parse(JSON.stringify(s))).missions, s.missions);
+});
 
-  s = advance(s, 'missionQuiz', '3:correct');
-  assert.deepEqual(s.missions, { 2: true, 3: true });
+test('第三章方案组卡：缺必需项被客户打回，满分组才拿满印记', () => {
+  let s = started();
+  s = advance(s, 'solution', { picks: ['loops', 'report', 'ota'] });
+  assert.equal(s.games.solution.done, false, '不看回路和告警的方案不成立');
+  assert.equal(s.mistakes, 1);
+
+  s = advance(s, 'solution', { picks: ['loops', 'alarm'] });
+  assert.equal(s.games.solution.done, false, '必须凑满预算三张');
+
+  // 可行解：回路 + 告警 + 任意一张
+  s = advance(s, 'solution', { picks: ['loops', 'alarm', 'report'] });
+  assert.equal(s.games.solution.done, true);
+  assert.equal(s.games.solution.perfect, false);
+  assert.equal(s.missions['3'], true);
   assert.equal(s.marks.务实, 1);
-  assert.equal(s.marks.创新, 1);
-  assert.deepEqual(normalize(JSON.parse(JSON.stringify(s))).marks, s.marks);
+  assert.equal(s.marks.创新, 1, '章节印章只看是否通关');
+
+  // 重开一次：满分组
+  let full = started();
+  full = advance(full, 'solution', { picks: content.solutionGame.perfect });
+  assert.equal(full.games.solution.perfect, true);
+  assert.deepEqual(full.games.solution.picks, content.solutionGame.perfect);
+
+  // 伪造的卡 id 会被忽略
+  const forged = normalize({
+    version: 5,
+    games: { solution: { done: true, picks: ['loops', 'alarm', 'hacked'], perfect: true } }
+  });
+  assert.equal(forged.games.solution.done, false);
+});
+
+test('旧存档（v4）的章节进度会迁移成小游戏记录', () => {
+  const migrated = normalize({ version: 4, prologueDone: true, missions: { 2: true, 3: true } });
+  assert.deepEqual(migrated.missions, { 2: true, 3: true });
+  assert.equal(migrated.games.cert.matched.length, content.certGame.markets.length);
+  assert.equal(migrated.games.solution.perfect, true);
+  assert.equal(migrated.marks.守正, 1);
+  assert.equal(migrated.marks.创新, 1);
 });
 
 test('结算画像给出分档、主印记与关键行为', () => {
@@ -239,7 +308,9 @@ test('小游戏成绩：配对、三消、答题各自记分，答题可以重�
   assert.deepEqual(s.games, {
     flip: { done: false, moves: 0, seconds: 0 },
     crush: { done: false, score: 0 },
-    quiz: { done: false, score: 0, results: [] }
+    quiz: { done: false, score: 0, results: [] },
+    cert: { matched: [] },
+    solution: { done: false, picks: [], perfect: false }
   });
 
   s = advance(s, 'flipResult', { moves: 14, seconds: 75 });
@@ -308,8 +379,7 @@ test('任务清单、进度与全部通关判定', () => {
   content.quizBank.forEach((question, index) => {
     s = advance(s, 'quizAnswer', { index, choice: question.ans });
   });
-  s = advance(s, 'missionQuiz', '2:correct');
-  s = advance(s, 'missionQuiz', '3:correct');
+  s = finishChapters(s);
 
   assert.equal(state.allDone(s), true);
   assert.deepEqual(state.taskProgress(s), {

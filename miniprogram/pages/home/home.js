@@ -49,8 +49,11 @@ Page({
   start() {
     wx.navigateTo({ url: state.route(store.read()) });
   },
+  /** 第二章是认证配对，第三章是方案组卡。 */
   openMission(e) {
-    wx.navigateTo({ url: '/pages/mission/mission?stage=' + e.currentTarget.dataset.stage });
+    const url =
+      e.currentTarget.dataset.stage === '3' ? '/pages/solution/solution' : '/pages/cert/cert';
+    wx.navigateTo({ url });
   },
   progress() {
     wx.navigateTo({ url: '/pages/progress/progress' });

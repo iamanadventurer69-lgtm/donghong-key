@@ -18,6 +18,8 @@ const CARDS = SHIFT.cards;
 const TRUST_MIN = 0;
 const TRUST_MAX = 100;
 const QUIZ_TOTAL = content.quizBank.length;
+/** 能安全读取的存档版本：更早的按规则迁移，未知版本一律当新档处理。 */
+const KNOWN_VERSIONS = [1, 2, 3, 4, 5];
 
 /** 信任值分档：结局评价与评语。 */
 const TRUST_LEVELS = [
@@ -72,10 +74,11 @@ function initial() {
   const marks = {};
   for (const name of MARKS) marks[name] = 0;
   return {
-    version: 4,
+    version: 5,
     prologue: 0,
     prologueDone: false,
     decisions: [],
+    // missions 由两个章节小游戏的完成情况推导，不直接读存档。
     missions: { 2: false, 3: false },
     pledge: '',
     completed: false,
@@ -83,7 +86,9 @@ function initial() {
     games: {
       flip: { done: false, moves: 0, seconds: 0 },
       crush: { done: false, score: 0 },
-      quiz: { done: false, score: 0, results: [] }
+      quiz: { done: false, score: 0, results: [] },
+      cert: { matched: [] },
+      solution: { done: false, picks: [], perfect: false }
     },
     mistakes: 0,
     updatedAt: 0,
@@ -132,9 +137,13 @@ function snapshot(s) {
       if (MARKS.includes(mark)) result.marks[mark] += 1;
     }
   }
-  for (const stage of ['2', '3']) {
-    if (!s.missions[stage]) continue;
-    for (const name of String(content.missions[stage].value).split('·')) {
+  const chapters = [
+    { done: s.missions['2'], value: content.certGame.value },
+    { done: s.missions['3'], value: content.solutionGame.value }
+  ];
+  for (const chapter of chapters) {
+    if (!chapter.done) continue;
+    for (const name of String(chapter.value).split('·')) {
       const mark = name.trim();
       if (MARKS.includes(mark)) result.marks[mark] += 1;
     }
@@ -151,7 +160,7 @@ function normalizeCheckins(raw) {
 }
 
 /** 清洗小游戏成绩：数值越界一律归零，避免伪造出高分。 */
-function normalizeGames(raw) {
+function normalizeGames(raw, legacyMissions) {
   const games = initial().games;
   const source = raw || {};
   const flip = source.flip || {};
@@ -177,6 +186,45 @@ function normalizeGames(raw) {
     score: Math.round((correct / QUIZ_TOTAL) * 100),
     results
   };
+
+  // 认证配对：只保留真实存在的市场，按题目顺序排列
+  const matched = Array.isArray((source.cert || {}).matched) ? source.cert.matched : [];
+  const answer = content.certGame.answer;
+  games.cert = {
+    matched: content.certGame.markets
+      .map((market) => market.id)
+      .filter((id) => matched.includes(id) && id in answer)
+  };
+
+  // 方案组卡：必须凑满预算且包含必需项，否则视为没完成
+  const solution = source.solution || {};
+  const picks = Array.isArray(solution.picks)
+    ? [
+        ...new Set(
+          solution.picks.filter((id) => content.solutionGame.cards.some((card) => card.id === id))
+        )
+      ]
+    : [];
+  const game = content.solutionGame;
+  const valid =
+    solution.done === true &&
+    picks.length === game.quota &&
+    game.required.every((id) => picks.includes(id));
+  games.solution = {
+    done: valid,
+    picks: valid ? picks : [],
+    perfect: valid && game.perfect.every((id) => picks.includes(id))
+  };
+
+  // 旧存档（v4 及更早）把章节完成状态记在 missions 上：按「已通过」补成完整记录
+  if (legacyMissions) {
+    if (legacyMissions['2'] === true && games.cert.matched.length === 0) {
+      games.cert.matched = content.certGame.markets.map((market) => market.id);
+    }
+    if (legacyMissions['3'] === true && !games.solution.done) {
+      games.solution = { done: true, picks: content.solutionGame.perfect.slice(), perfect: true };
+    }
+  }
   return games;
 }
 
@@ -186,12 +234,13 @@ function normalizeGames(raw) {
  */
 function normalize(raw) {
   const s = initial();
-  if (!raw || ![1, 2, 3, 4].includes(raw.version)) return s;
+  if (!raw || !KNOWN_VERSIONS.includes(raw.version)) return s;
 
   s.prologue = Number.isInteger(raw.prologue) ? Math.max(0, Math.min(2, raw.prologue)) : 0;
   s.prologueDone = raw.prologueDone === true;
-  s.missions['2'] = raw.missions && raw.missions['2'] === true;
-  s.missions['3'] = raw.missions && raw.missions['3'] === true;
+  s.games = normalizeGames(raw.games, raw.missions);
+  s.missions['2'] = s.games.cert.matched.length === content.certGame.markets.length;
+  s.missions['3'] = s.games.solution.done === true;
 
   const submitted = Array.isArray(raw.decisions) ? raw.decisions : [];
   const flags = {};
@@ -205,7 +254,6 @@ function normalize(raw) {
   }
 
   s.checkins = normalizeCheckins(raw.checkins);
-  s.games = normalizeGames(raw.games);
 
   const settled = snapshot(s);
   s.trust = settled.trust;
@@ -288,18 +336,40 @@ function advance(state, event, payload) {
     case 'quizReset':
       s.games.quiz = { done: false, score: 0, results: [] };
       break;
+    case 'certMatch': {
+      const answer = content.certGame.answer;
+      const market = payload && payload.market;
+      if (!market || !(market in answer)) break;
+      if (s.games.cert.matched.includes(market)) break;
+      if (answer[market] !== payload.cert) {
+        s.mistakes += 1;
+        break;
+      }
+      s.games.cert.matched.push(market);
+      break;
+    }
+    case 'solution': {
+      const game = content.solutionGame;
+      const picks = Array.isArray(payload && payload.picks) ? [...new Set(payload.picks)] : [];
+      const known = picks.filter((id) => game.cards.some((card) => card.id === id));
+      const ok = known.length === game.quota && game.required.every((id) => known.includes(id));
+      if (!ok) {
+        s.mistakes += 1;
+        break;
+      }
+      s.games.solution = {
+        done: true,
+        picks: known,
+        perfect: game.perfect.every((id) => known.includes(id))
+      };
+      break;
+    }
     case 'complete':
       if (shiftDone(s) && content.actions.includes(payload)) {
         s.pledge = payload;
         s.completed = true;
       }
       break;
-    case 'missionQuiz': {
-      const [stage, result] = String(payload).split(':');
-      if (content.missions[stage] && result === 'correct') s.missions[stage] = true;
-      else s.mistakes += 1;
-      break;
-    }
     case 'mistake':
       s.mistakes += 1;
       break;
@@ -363,11 +433,18 @@ function tasks(s) {
       page: '/pages/quest/quest'
     },
     {
-      id: 'missions',
+      id: 'cert',
       icon: '🌍',
-      name: '世界之门 · 客户之光',
-      done: s.missions['2'] && s.missions['3'],
-      page: '/pages/home/home'
+      name: '世界之门 · 认证配对',
+      done: s.missions['2'],
+      page: '/pages/cert/cert'
+    },
+    {
+      id: 'solution',
+      icon: '🎯',
+      name: '客户之光 · 方案组卡',
+      done: s.missions['3'],
+      page: '/pages/solution/solution'
     },
     {
       id: 'pledge',
@@ -406,6 +483,8 @@ function scoreboard(s) {
       correct: s.games.quiz.results.filter(Boolean).length,
       total: QUIZ_TOTAL
     },
+    cert: { matched: s.games.cert.matched.length, total: content.certGame.markets.length },
+    solution: s.games.solution,
     grade: grade(s),
     progress: taskProgress(s)
   };

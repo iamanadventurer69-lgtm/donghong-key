@@ -1,9 +1,10 @@
 {
   "pages": [
     "pages/home/home",
-    "pages/mission/mission",
     "pages/prologue/prologue",
     "pages/shift/shift",
+    "pages/cert/cert",
+    "pages/solution/solution",
     "pages/quest/quest",
     "pages/flip/flip",
     "pages/crush/crush",

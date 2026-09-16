@@ -38,11 +38,7 @@ test('所有原生页面禁用纵向滚动；固定视窗分屏，未引入 scro
   for (const p of require(r + '/app.json').pages) {
     assert.equal(require(r + '/' + p + '.json').disableScroll, true);
     const w = fs.readFileSync(r + '/' + p + '.wxml', 'utf8');
-    assert.ok(
-      p === 'pages/mission/mission'
-        ? w.includes('class="mission-page"')
-        : w.includes('class="viewport"')
-    );
+    assert.ok(w.includes('class="viewport"'), p);
     assert.ok(!w.includes('scroll-view'));
   }
 });

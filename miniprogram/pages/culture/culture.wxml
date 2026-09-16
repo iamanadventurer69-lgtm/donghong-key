@@ -1,32 +1,46 @@
 <view class="viewport" bindtouchstart="swipeStart" bindtouchend="swipeEnd" bindtouchcancel="swipeCancel">
-  <view class="topline"><text class="eyebrow">CULTURE IMPRINT / 文化印记</text></view>
+  <view class="topline"><text class="eyebrow">SHIFT REPORT / 值班结算</text></view>
   <view wx:if="{{warning}}" class="save-warning">{{warning}}</view>
   <view class="panel" wx:if="{{panel===0}}">
-    <view class="seal"><view class="seal-core">芯</view></view>
-    <view class="title center">技术之芯，已点亮。</view>
-    <view class="culture"><view class="label">记住本章的方向</view><view class="quote">创新驱动、技术为本</view></view>
+    <view class="seal"><view class="seal-core">{{portrait.trust}}</view></view>
+    <view class="title center">{{portrait.level.label}}</view>
+    <view class="subtitle center">{{portrait.level.comment}}</view>
     <view class="card">
-      <view class="label">创新</view>
-      <view class="quote">需求在变化，答案也要不断进化。</view>
-      <view class="muted">你组合双向计量与通讯能力，回应客户的新需求。</view>
+      <view class="row"><text class="label">客户信任</text><text class="trust-num">{{portrait.trust}} / 100</text></view>
+      <view class="progress-track"><view class="progress-fill" style="width:{{portrait.trust}}%"/></view>
+      <view class="small muted">信任值由你今天每一次盖章累积而成，不会被人工修正。</view>
     </view>
-    <button class="primary" bindtap="nextPanel">回顾你的技术选择 →</button>
+    <button class="primary" bindtap="nextPanel">看我的文化画像 →</button>
   </view>
   <view class="panel" wx:elif="{{panel===1}}">
-    <view class="title">能用不是终点，<view>更好才是目标。</view></view>
+    <view class="title">你的文化画像</view>
     <view class="card">
-      <view class="label">精进</view>
-      <view class="quote">发现异常 → 追溯 → 校准 → 复测</view>
-      <view class="line"/>
-      <view>你没有忽略 +2.4% 的异常，而是让每一次改进都有验证。</view>
+      <view class="label">印记构成</view>
+      <view class="mark-row" wx:for="{{portrait.ranked}}" wx:key="name">
+        <text class="mark-name">{{item.name}}</text>
+        <view class="mark-track">
+          <view class="mark-fill {{item.negative?'bad':''}}" style="width:{{item.width}}%"/>
+        </view>
+        <text class="mark-val {{item.negative?'bad':''}}">{{item.value>0?'+':''}}{{item.value}}</text>
+      </view>
     </view>
-    <view class="culture"><view class="label">技术创造客户价值</view><view class="quote">{{culture.belief}}</view></view>
-    <view class="subtitle">向着“{{culture.vision}}”持续前进。</view>
-    <button class="primary" bindtap="nextPanel">选择我的工作行动 →</button>
+    <view class="culture">
+      <view class="label">最高印记 · {{portrait.top||'尚无'}}</view>
+      <view class="quote">{{portrait.style.title}}</view>
+    </view>
+    <view class="muted small">{{portrait.style.comment}}</view>
+    <view class="card highlights">
+      <view class="label">你的关键行为</view>
+      <view class="highlight" wx:for="{{portrait.highlights}}" wx:key="card">
+        <text class="highlight-title">{{item.card}}</text>
+        <text class="highlight-choice">{{item.choice}}</text>
+      </view>
+    </view>
+    <button class="primary" bindtap="nextPanel">选择我的行动承诺 →</button>
   </view>
   <view class="panel" wx:else>
     <view class="title">把文化带回工作</view>
-    <view class="subtitle">选择一项行动，保存本章印记。</view>
+    <view class="subtitle">选一项行动，保存你的文化画像。</view>
     <view>
       <button
         wx:for="{{actions}}"
@@ -36,8 +50,8 @@
         bindtap="choose"
       >{{selected===item?'◉':'○'}} {{item}}</button>
     </view>
-    <view class="small success" wx:if="{{s.completed}}">✓ 第一阶段已完成，行动承诺已记录。</view>
-    <button class="primary" disabled="{{!selected}}" bindtap="save">{{s.completed?'更新行动承诺':'保存承诺，完成第一章'}}</button>
+    <view class="small success" wx:if="{{s.completed}}">✓ 全部完成：序章、质量值班、文化画像已记录。</view>
+    <button class="primary" disabled="{{!selected}}" bindtap="save">{{s.completed?'更新行动承诺':'保存承诺，完成探索'}}</button>
     <view class="row">
       <button class="text-button" bindtap="progress">探索档案</button>
       <button class="text-button" bindtap="home">返回首页</button>

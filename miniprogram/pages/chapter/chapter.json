@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "第一章 · 技术之芯",
-  "usingComponents": {
-    "live-meter": "/components/live-meter/live-meter"
-  },
-  "disableScroll": true
-}

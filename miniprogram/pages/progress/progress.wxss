@@ -1,1 +1,35 @@
 /* Fixed viewport layout and sky-blue theme are shared in app.wxss. */
+
+.trust-num {
+  font:
+    600 12px Menlo,
+    monospace;
+  color: #1c7fb4;
+}
+
+.marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.mark {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: #eef7fd;
+  color: #5a7d92;
+}
+
+.mark.good {
+  background: #e3f6ff;
+  color: #1577a8;
+  font-weight: 600;
+}
+
+.mark.bad {
+  background: #fdeeea;
+  color: #b8513c;
+  font-weight: 600;
+}

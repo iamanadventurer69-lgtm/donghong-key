@@ -1,1 +1,80 @@
 /* Fixed viewport layout and sky-blue theme are shared in app.wxss. */
+.trust-num {
+  font:
+    600 15px Menlo,
+    monospace;
+  color: #1c7fb4;
+}
+
+.mark-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+}
+
+.mark-name {
+  width: 34px;
+  font-size: 12px;
+  color: #2b5f7d;
+}
+
+.mark-track {
+  flex: 1;
+  height: 8px;
+  background: #e6f2f9;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mark-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6cc9f2, #249fdb);
+  border-radius: 8px;
+  transition: width 0.5s ease;
+}
+
+.mark-fill.bad {
+  background: #dd907c;
+}
+
+.mark-val {
+  width: 26px;
+  text-align: right;
+  font:
+    600 12px Menlo,
+    monospace;
+  color: #1c7fb4;
+}
+
+.mark-val.bad {
+  color: #b8513c;
+}
+
+.highlights {
+  max-height: 168px;
+  overflow: hidden;
+}
+
+.highlight {
+  padding: 5px 0;
+  border-top: 1px dashed #dcecf6;
+}
+
+.highlight-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e5a7d;
+}
+
+.highlight-choice {
+  font-size: 11px;
+  color: #4d7c94;
+}
+
+.seal-core {
+  font:
+    700 34px Menlo,
+    monospace;
+}

@@ -31,7 +31,7 @@ test('普通页边界与交互区隔离：滑杆和拖拽不能触发翻页', ()
   p.swipeCancel();
   assert.equal(p.swipeOrigin, null);
 });
-test('所有原生页面禁用纵向滚动；任务关使用独立固定视图，交互组件隔离翻页事件', () => {
+test('所有原生页面禁用纵向滚动；固定视窗分屏，未引入 scroll-view', () => {
   const fs = require('node:fs'),
     path = require('node:path');
   const r = path.resolve(__dirname, '../miniprogram');
@@ -45,6 +45,21 @@ test('所有原生页面禁用纵向滚动；任务关使用独立固定视图�
     );
     assert.ok(!w.includes('scroll-view'));
   }
-  const chapter = fs.readFileSync(r + '/pages/chapter/chapter.wxml', 'utf8');
-  assert.equal((chapter.match(/catchtouchstart="holdGesture"/g) || []).length, 2);
+});
+
+test('值班页的滑动只用于盖章，规则弹层不穿透到底层', () => {
+  const fs = require('node:fs'),
+    path = require('node:path');
+  const r = path.resolve(__dirname, '../miniprogram');
+  const shift = fs.readFileSync(r + '/pages/shift/shift.wxml', 'utf8');
+  for (const handler of [
+    'bindtouchstart="swipeStart"',
+    'bindtouchend="swipeEnd"',
+    'bindtouchcancel="swipeCancel"'
+  ]) {
+    assert.ok(shift.includes(handler), handler);
+  }
+  assert.ok(shift.includes('catchtap="noop"'));
+  assert.ok(shift.includes('wx:if="{{rulesOpen}}"'));
+  assert.ok(!shift.includes('scroll-view'));
 });

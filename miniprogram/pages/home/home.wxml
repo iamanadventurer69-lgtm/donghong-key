@@ -17,10 +17,10 @@
       <view class="chapter-head">
         <text class="number">01</text>
         <text class="section-title">技术之芯</text>
-        <text class="tag">{{s.completed?'已点亮':'可探索'}}</text>
+        <text class="tag">{{shiftTag}}</text>
       </view>
       <view class="muted">创新驱动、技术为本</view>
-      <view class="small muted">模块组装 · 精度排查</view>
+      <view class="small muted">质量值班 · 六份材料盖章</view>
     </button>
     <button class="card chapter-card stage-button" data-stage="2" bindtap="openMission">
       <view class="chapter-head">

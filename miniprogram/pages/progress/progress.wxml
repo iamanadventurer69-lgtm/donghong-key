@@ -4,14 +4,20 @@
   <view class="panel" wx:if="{{panel===0}}">
     <view class="title">每一步，都留下印记。</view>
     <view class="card">
-      <view class="row"><text>第一阶段</text><text class="number">{{percent}}%</text></view>
+      <view class="row"><text>探索进度</text><text class="number">{{percent}}%</text></view>
       <view class="progress-track"><view class="progress-fill" style="width:{{percent}}%"/></view>
       <view class="small muted">最近保存：{{updated}}</view>
     </view>
     <view class="card">
-      <view wx:for="{{stages}}" wx:key="name" class="stage"><text class="success">{{item.done?'✓':'○'}}</text><text>{{item.name}}</text><text class="small muted">{{item.done?'已点亮':'待探索'}}</text></view>
+      <view class="row"><text>客户信任</text><text class="trust-num">{{trust}} / 100 · {{level.label}}</text></view>
+      <view class="marks">
+        <text wx:for="{{marks}}" wx:key="name" class="mark {{item.value>0?'good':''}} {{item.value<0?'bad':''}}">{{item.name}} {{item.value>0?'+':''}}{{item.value}}</text>
+      </view>
     </view>
-    <button class="primary" bindtap="resume">{{s.completed?'回顾文化印记':'继续上次探索 →'}}</button>
+    <view class="card">
+      <view wx:for="{{stages}}" wx:key="name" class="stage"><text class="success">{{item.done?'✓':'○'}}</text><text>{{item.name}}</text><text class="small muted">{{item.done?'已完成':'待探索'}}</text></view>
+    </view>
+    <button class="primary" bindtap="resume">{{s.completed?'回顾我的文化画像':'继续上次探索 →'}}</button>
   </view>
   <view class="panel" wx:elif="{{panel===1}}">
     <view class="title">东鸿文化坐标</view>

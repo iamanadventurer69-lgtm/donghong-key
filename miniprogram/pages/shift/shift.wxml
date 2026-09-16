@@ -1,0 +1,64 @@
+<view class="viewport" bindtouchstart="swipeStart" bindtouchend="swipeEnd" bindtouchcancel="swipeCancel">
+  <view class="topline">
+    <text class="eyebrow">{{shift.code}} / {{shift.title}}</text>
+    <view class="topline-actions">
+      <button class="text-button" bindtap="toggleRules">规则</button>
+      <button class="text-button" bindtap="home">首页</button>
+    </view>
+  </view>
+  <view class="hud">
+    <view class="row">
+      <text class="label">客户信任</text>
+      <text class="trust-num">{{trust}}</text>
+    </view>
+    <view class="trust-track"><view class="trust-fill" style="width:{{trust}}%"/></view>
+    <view class="marks">
+      <text wx:for="{{marks}}" wx:key="name" class="mark {{item.value>0?'good':''}} {{item.value<0?'bad':''}}">{{item.name}} {{item.value>0?'+':''}}{{item.value}}</text>
+    </view>
+  </view>
+  <view class="sheet" wx:if="{{phase==='card'}}">
+    <view class="sheet-head">
+      <text class="sheet-tag">{{card.tag}}</text>
+      <text class="sheet-index">第 {{index}} / {{total}} 份</text>
+    </view>
+    <view class="sheet-title">{{card.title}}</view>
+    <view class="sheet-from">{{card.from}}</view>
+    <view class="sheet-body">{{card.body}}</view>
+    <view class="docs">
+      <view class="doc" wx:for="{{card.docs}}" wx:key="label">
+        <text class="doc-label">{{item.label}}</text>
+        <text class="doc-text">{{item.text}}</text>
+      </view>
+    </view>
+  </view>
+  <view class="sheet" wx:else>
+    <view class="stamp {{result.stamp}}">{{result.stamp==='release'?'放行':'退回'}}</view>
+    <view class="sheet-title">{{result.label}}</view>
+    <view class="delta">
+      <text class="small muted">客户信任</text>
+      <text class="delta-num {{result.delta<0?'minus':'plus'}}">{{result.delta>0?'+':''}}{{result.delta}}</text>
+      <text class="small muted">→ {{result.trust}}</text>
+    </view>
+    <view class="sheet-body">{{result.text}}</view>
+    <view class="mark-delta" wx:if="{{result.marks}}">印记变化 {{result.marks}}</view>
+  </view>
+  <view class="actions" wx:if="{{phase==='card'}}">
+    <block wx:if="{{twoStamps}}">
+      <button class="stamp-button release" data-id="{{stampRelease}}" bindtap="choose">盖章放行</button>
+      <button class="stamp-button back" data-id="{{stampReturn}}" bindtap="choose">盖章退回</button>
+    </block>
+    <block wx:else>
+      <button class="option" wx:for="{{card.choices}}" wx:key="id" data-id="{{item.id}}" bindtap="choose">{{item.label}}</button>
+    </block>
+  </view>
+  <button class="primary" wx:else bindtap="next">{{last?'结束值班，看文化画像':'下一份 →'}}</button>
+  <view class="hint">{{phase==='card'?'右滑放行 · 左滑退回 · 也可以点按钮':'盖章已记录，后果会自己找上门'}}</view>
+  <view class="rules-mask" wx:if="{{rulesOpen}}" bindtap="toggleRules">
+    <view class="rules" catchtap="noop">
+      <view class="label">质量值班规则</view>
+      <view class="rule" wx:for="{{shift.rules}}" wx:key="*this">· {{item}}</view>
+      <button class="secondary" bindtap="toggleRules">知道了</button>
+    </view>
+  </view>
+  <view wx:if="{{warning}}" class="save-warning">{{warning}}</view>
+</view>

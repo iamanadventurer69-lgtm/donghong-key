@@ -1,22 +1,21 @@
 /**
  * 首页：三屏固定视窗（使命 / 三种能力 / 方向与进度）。
- * Canvas 能量网络随进度点亮，点「开启文化探索」按存档决定去序章还是继续。
+ * Canvas 能量网络随进度点亮，主按钮按存档决定去序章、去值班还是看画像。
  */
 const pager = require('../../utils/pager');
 const content = require('../../data/content');
 const store = require('../../utils/storage');
 const state = require('../../utils/state');
 
-/** 首页 Canvas 上点亮的节点数。 */
+/** 首页 Canvas 点亮的节点数：序章后 2 个，之后每盖一张卡加 1 个。 */
 function litNodes(s) {
-  if (s.completed) return 6;
-  if (s.prologueDone) return 2;
-  return 0;
+  if (!s.prologueDone) return 0;
+  return Math.min(6, 2 + s.decisions.length);
 }
 
-/** 主按钮文案随进度变化。 */
+/** 主按钮文案。 */
 function primaryLabel(s) {
-  if (s.completed) return '回顾我的文化印记';
+  if (s.completed) return '回顾我的文化画像';
   if (s.updatedAt) return '继续探索';
   return '开启文化探索';
 }
@@ -31,12 +30,15 @@ Page({
   },
   onShow() {
     const s = store.read();
+    const done = s.decisions.length;
+    const total = state.CARDS.length;
     this.setData({
       s,
       percent: state.percent(s),
       active: litNodes(s),
       warning: store.warning(),
-      cta: primaryLabel(s)
+      cta: primaryLabel(s),
+      shiftTag: s.completed || done >= total ? '已点亮' : done > 0 ? `${done} / ${total}` : '可探索'
     });
   },
   start() {

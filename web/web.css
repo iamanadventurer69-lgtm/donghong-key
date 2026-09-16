@@ -62,14 +62,18 @@ body {
     border-radius: 8px;
   }
 
-  /* —— 首页 / 档案：多屏并排 —— */
+  /* —— 首页：整页纵向流（hero / 三块内容 / 方向），别再给外壳套网格 —— */
   .page-home {
-    display: grid;
-    grid-template-columns: 1.15fr 1fr 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 16px;
-    align-items: stretch;
-    align-content: start;
   }
+  .page-home .home-hero,
+  .page-home .home-flow,
+  .page-home .home-about {
+    width: 100%;
+  }
+  /* —— 探索档案：多屏并排 —— */
   .page-progress {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -77,13 +81,10 @@ body {
     align-items: stretch;
     align-content: start;
   }
-  .page-home > .topline,
-  .page-home > .save-warning,
   .page-progress > .topline,
   .page-progress > .save-warning {
     grid-column: 1 / -1;
   }
-  .page-home .panel,
   .page-progress .panel {
     justify-content: flex-start;
     gap: 14px;
@@ -94,12 +95,11 @@ body {
     box-shadow: 0 8px 26px #77bfe60f;
     animation: none;
   }
-  .page-home .network-space {
-    min-height: 190px;
-    max-height: 230px;
-  }
   .page-home .hero-title {
-    font-size: 40px;
+    font-size: 44px;
+  }
+  .page-home .home-canvas {
+    min-height: 220px;
   }
 
   /* —— 学习 / 结算向导：居中单栏，一屏一个模块 —— */

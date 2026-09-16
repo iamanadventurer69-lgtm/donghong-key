@@ -367,21 +367,29 @@ await desktop.waitForTimeout(400);
 const layout = await desktop.evaluate(() => {
   const shell = document.getElementById('app');
   const hero = document.querySelector('.home-hero');
+  const row = document.querySelector('.flow-row');
+  const cols = (el) =>
+    [...el.children].map((child) => Math.round(child.getBoundingClientRect().width));
   return {
     外壳: Math.round(shell.getBoundingClientRect().width),
-    hero列数: getComputedStyle(hero).gridTemplateColumns.split(' ').length,
-    流程列数: getComputedStyle(document.querySelector('.flow-row')).gridTemplateColumns.split(' ')
-      .length,
+    hero宽: Math.round(hero.getBoundingClientRect().width),
+    hero各列: cols(hero),
+    流程各列: cols(row),
     流程卡: document.querySelectorAll('.flow-card').length,
     横向溢出: document.documentElement.scrollWidth - window.innerWidth
   };
 });
 check('桌面外壳铺满宽度', layout.外壳 >= 1000, String(layout.外壳));
-check('桌面 hero 三栏', layout.hero列数 === 3, JSON.stringify(layout));
+check('桌面 hero 铺满整宽', layout.hero宽 >= layout.外壳 - 60, JSON.stringify(layout));
 check(
-  '桌面三块并排（含箭头列）',
-  layout.流程列数 === 5 && layout.流程卡 === 3,
-  JSON.stringify(layout)
+  '桌面 hero 三栏且没有窄条',
+  layout.hero各列.length === 3 && layout.hero各列.every((w) => w >= 240),
+  JSON.stringify(layout.hero各列)
+);
+check(
+  '桌面三块内容并排且每块够宽',
+  layout.流程卡 === 3 && layout.流程各列.filter((w) => w >= 200).length === 3,
+  JSON.stringify(layout.流程各列)
 );
 check('桌面无横向溢出', layout.横向溢出 <= 0, JSON.stringify(layout));
 await desktop.close();

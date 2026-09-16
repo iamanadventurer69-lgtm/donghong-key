@@ -107,6 +107,8 @@ test('值班闭环：六份材料盖章 → 文化画像 → 行动承诺', () =
   intro.next();
   intro.next();
   assert.equal(store.read().prologueDone, true);
+  // 领完密钥必须跳到主线第一关（历史上这里写死过一个被删掉的页面路径）
+  assert.equal(routes.at(-1), '/pages/shift/shift');
 
   const shift = page('shift');
   shift.onLoad();

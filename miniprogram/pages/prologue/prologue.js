@@ -5,6 +5,7 @@
 const pager = require('../../utils/pager');
 const content = require('../../data/content');
 const store = require('../../utils/storage');
+const state = require('../../utils/state');
 
 Page({
   ...pager.methods,
@@ -45,7 +46,8 @@ Page({
       return;
     }
     store.dispatch('mission');
-    wx.redirectTo({ url: '/pages/chapter/chapter' });
+    // 领完密钥进入主线第一关（值班），不要写死页面路径
+    wx.redirectTo({ url: state.route(store.read()) });
   },
   home() {
     wx.reLaunch({ url: '/pages/home/home' });

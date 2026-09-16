@@ -454,21 +454,21 @@ function tasks(s) {
       icon: '🃏',
       name: '模块配对',
       done: s.games.flip.done,
-      page: '/pages/quest/quest'
+      page: '/pages/flip/flip'
     },
     {
       id: 'crush',
       icon: '✨',
       name: '能量三消',
       done: s.games.crush.done,
-      page: '/pages/quest/quest'
+      page: '/pages/crush/crush'
     },
     {
       id: 'quiz',
       icon: '📝',
       name: '知识答题',
       done: s.games.quiz.done,
-      page: '/pages/quest/quest'
+      page: '/pages/quiz/quiz'
     },
     {
       id: 'repro',

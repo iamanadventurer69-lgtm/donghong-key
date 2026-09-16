@@ -112,7 +112,6 @@
         <view class="detail-row"><text>认证配对</text><text>{{scoreboard.cert.matched}} / {{scoreboard.cert.total}} 个市场</text></view>
         <view class="detail-row"><text>方案组卡</text><text>{{scoreboard.solution.perfect?'满分组通过':'已通过'}}</text></view>
         <view class="detail-row"><text>模块配对</text><text>{{scoreboard.flip.moves}} 步 / {{scoreboard.flip.seconds}} 秒</text></view>
-        <view class="detail-row"><text>复现异常</text><text>{{scoreboard.repro.load}}% 负载</text></view>
         <view class="detail-row"><text>知识答题</text><text>{{scoreboard.quiz.correct}} / {{scoreboard.quiz.total}} 题正确</text></view>
       </view>
       <view class="grade" style="background:{{grade.color}}">GRADE {{grade.code}}</view>

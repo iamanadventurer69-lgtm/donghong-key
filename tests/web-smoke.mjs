@@ -88,12 +88,18 @@ check(
 );
 check('页面在子路径下', page.url().includes('/repo/'), page.url());
 check('首页渲染', (await text()).includes('东鸿密钥'));
-await tap('[data-action="next"]');
 const entries = await page.evaluate(() =>
-  [...document.querySelectorAll('.chapter-card')].map((card) => card.innerText.replace(/\s+/g, ' '))
+  [...document.querySelectorAll('.flow-card')].map((card) => card.innerText.replace(/\s+/g, ' '))
 );
-check('首页三个入口', entries.length === 3, entries.join(' / '));
+check('首页三个入口（按顺序）', entries.length === 3, entries.join(' / '));
 check('测试与小游戏初始未解锁', entries[1].includes('未解锁') && entries[2].includes('未解锁'));
+check(
+  '首页有 hero 区块并铺满宽度',
+  await page.evaluate(() => {
+    const hero = document.querySelector('.home-hero');
+    return Boolean(hero) && hero.getBoundingClientRect().width > 300;
+  })
+);
 
 /* 1. 序章 → 直接进入企业文化学习 */
 await go('#/prologue');
@@ -195,21 +201,47 @@ check('小游戏已解锁', !(await text()).includes('尚未解锁'));
 
 /* 7. 五个小游戏 */
 await tap('[data-action="open"][data-id="hop"]');
-await wait(200);
+await wait(220);
 check('进入跳格子', (await hash()) === '#/hop', await hash());
+check('跳格子是按压蓄力玩法', (await text()).includes('按住工作栏蓄力'));
+/** 按住 ms 毫秒后松手，指针停在对应选项上（指针每 240ms 扫过一项）。 */
+const hopPress = async (ms) => {
+  const box = await page.locator('#hop-dock').boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(ms);
+  await page.mouse.up();
+  await wait(240);
+};
 const hopAnswers = await page.evaluate(() =>
   window.DHKApp.content.hopGame.tiles.map((t) => t.answer)
 );
 for (let step = 0; step < hopAnswers.length; step += 1) {
   const tile = (await save()).games.hop.tile;
-  await tap(`[data-action="pick"][data-index="${hopAnswers[tile]}"]`);
-  await wait(90);
+  const wrong = (hopAnswers[tile] + 1) % 4;
+  // 先故意选错：应停在原格并提示重选
+  await hopPress(240 * wrong + 40);
+  check(`第 ${tile + 1} 格选错停在原格`, (await save()).games.hop.tile === tile);
+  check('选错后提示重新选', (await text()).includes('重新选一次'));
+  await tap('[data-action="retry"]');
+  await wait(160);
+  // 再选对：前进一格
+  await hopPress(240 * hopAnswers[tile] + 40);
+  check(`第 ${tile + 1} 格选对前进一格`, (await save()).games.hop.tile === tile + 1);
   await tap('[data-action="go"]');
-  await wait(90);
+  await wait(180);
 }
 check('跳格子走到终点', (await save()).games.hop.done === true);
 
 await go('#/flip');
+check(
+  '配对牌面全部正面朝上',
+  await page.evaluate(() =>
+    [...document.querySelectorAll('#flip-grid .card .label')].every(
+      (node) => node.textContent.trim().length > 0
+    )
+  )
+);
 const pairs = await page.evaluate(() => {
   const groups = {};
   document.querySelectorAll('.card').forEach((card, index) => {
@@ -263,8 +295,10 @@ await tap(`[data-row="${swapPair[0].row}"][data-col="${swapPair[0].col}"]`);
 await tap(`[data-row="${swapPair[1].row}"][data-col="${swapPair[1].col}"]`);
 await wait(700);
 check('三消得分并停稳', (await page.textContent('#crush-score')) !== '0');
-// 三消要等 60 秒倒计时结束才记录成绩（和小程序一致），这里就等它自然结束
-const crushDeadline = Date.now() + 70000;
+// 三消要等 60 秒倒计时结束才记录成绩（和小程序一致），这里就等它自然结束。
+// 注意：Chromium 会把后台页的定时器降到 1 分钟一次，所以先把它切到前台。
+await page.bringToFront();
+const crushDeadline = Date.now() + 75000;
 while (Date.now() < crushDeadline && !(await save()).games.crush.done) await wait(1000);
 check('三消成绩已记录', (await save()).games.crush.done === true);
 
@@ -277,15 +311,6 @@ for (let i = 0; i < bank.length; i += 1) {
   await wait(80);
 }
 check('答题满分', (await save()).games.quiz.score === 100);
-
-await go('#/repro');
-await page.evaluate(() => {
-  const slider = document.getElementById('repro-slider');
-  slider.value = '92';
-  slider.dispatchEvent(new Event('input', { bubbles: true }));
-});
-await wait(3400);
-check('复现异常通关', (await save()).games.repro.done === true);
 
 /* 8. 通关结算 */
 await go('#/final');
@@ -312,7 +337,6 @@ const HASHES = [
   '#/flip',
   '#/crush',
   '#/quiz',
-  '#/repro',
   '#/final',
   '#/progress'
 ];
@@ -333,8 +357,37 @@ for (const target of HASHES) {
   check(`${target} 挂对了样式作用域`, /page-[a-z]+/.test(measured.cls), measured.cls);
 }
 
+/* 10. 桌面端布局：铺满宽度、三块并排、首页三栏 */
+const desktop = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+desktop.on('pageerror', (error) => errors.push('desktop: ' + error.message));
+await desktop.goto(base);
+await desktop.evaluate(() => localStorage.clear());
+await desktop.reload();
+await desktop.waitForTimeout(400);
+const layout = await desktop.evaluate(() => {
+  const shell = document.getElementById('app');
+  const hero = document.querySelector('.home-hero');
+  return {
+    外壳: Math.round(shell.getBoundingClientRect().width),
+    hero列数: getComputedStyle(hero).gridTemplateColumns.split(' ').length,
+    流程列数: getComputedStyle(document.querySelector('.flow-row')).gridTemplateColumns.split(' ')
+      .length,
+    流程卡: document.querySelectorAll('.flow-card').length,
+    横向溢出: document.documentElement.scrollWidth - window.innerWidth
+  };
+});
+check('桌面外壳铺满宽度', layout.外壳 >= 1000, String(layout.外壳));
+check('桌面 hero 三栏', layout.hero列数 === 3, JSON.stringify(layout));
+check(
+  '桌面三块并排（含箭头列）',
+  layout.流程列数 === 5 && layout.流程卡 === 3,
+  JSON.stringify(layout)
+);
+check('桌面无横向溢出', layout.横向溢出 <= 0, JSON.stringify(layout));
+await desktop.close();
+
 await browser.close();
 server.close();
 console.log(
-  `网页版端到端测试通过：${checks.length} 项断言（16 条路由、5 个小游戏、学习与测试向导全链路）`
+  `网页版端到端测试通过：${checks.length} 项断言（16 条路由、4 个小游戏、学习与测试向导全链路）`
 );

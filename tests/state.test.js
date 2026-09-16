@@ -311,7 +311,6 @@ test('小游戏成绩：配对、三消、答题各自记分，答题可以重�
     quiz: { done: false, score: 0, results: [] },
     cert: { matched: [] },
     solution: { done: false, picks: [], perfect: false },
-    repro: { done: false, load: 0 },
     hop: { done: false, tile: 0, right: 0, wrong: 0 }
   });
 
@@ -378,7 +377,6 @@ test('任务清单、进度与全部通关判定', () => {
     s = advance(s, 'checkin', { questId: quest.id, choice: quest.answer });
   s = advance(s, 'flipResult', { moves: 16, seconds: 60 });
   s = advance(s, 'crushResult', { score: 320 });
-  s = advance(s, 'reproResult', { load: content.reproGame.targetMin });
   content.quizBank.forEach((question, index) => {
     s = advance(s, 'quizAnswer', { index, choice: question.ans });
   });
@@ -432,31 +430,7 @@ test('通关评级按成绩分档', () => {
   assert.ok(state.grade(perfect).comment.length > 0);
 });
 
-test('复现异常：负载不到阈值不算通过，通过后记录负载', () => {
-  let s = started();
-  assert.equal(s.games.repro.done, false);
-
-  s = advance(s, 'reproResult', { load: 60 });
-  assert.equal(s.games.repro.done, false, '低负载不算复现');
-
-  s = advance(s, 'reproResult', { load: content.reproGame.targetMin });
-  assert.equal(s.games.repro.done, true);
-  assert.equal(s.games.repro.load, content.reproGame.targetMin);
-  assert.deepEqual(normalize(JSON.parse(JSON.stringify(s))).games.repro, s.games.repro);
-
-  // 伪造的负载会被夹到 0~100，且低于阈值一律作废
-  const forged = normalize({ version: 5, games: { repro: { done: true, load: 999 } } });
-  assert.deepEqual(forged.games.repro, { done: true, load: 100 });
-  const low = normalize({ version: 5, games: { repro: { done: true, load: 10 } } });
-  assert.equal(low.games.repro.done, false);
-
-  // 任务清单里能点进实验台页面
-  const task = state.tasks(s).find((item) => item.id === 'repro');
-  assert.equal(task.done, true);
-  assert.equal(task.page, '/pages/repro/repro');
-});
-
-test('文化跳格子：答对前进一格，答错退回一格，起点不会退到负数', () => {
+test('文化跳格子：答对前进一格，答错停在原格重选', () => {
   const tiles = content.hopGame.tiles;
   let s = started();
   assert.deepEqual(s.games.hop, { done: false, tile: 0, right: 0, wrong: 0 });
@@ -468,18 +442,20 @@ test('文化跳格子：答对前进一格，答错退回一格，起点不会�
   s = advance(s, 'hopAnswer', { index: 0, choice: tiles[0].answer });
   assert.deepEqual(s.games.hop, { done: false, tile: 1, right: 1, wrong: 0 });
 
+  // 答错：停在原格，只记错，等玩家重选
   s = advance(s, 'hopAnswer', {
     index: 1,
     choice: (tiles[1].answer + 1) % tiles[1].options.length
   });
-  assert.equal(s.games.hop.tile, 0);
+  assert.equal(s.games.hop.tile, 1, '答错停在原格');
   assert.equal(s.games.hop.wrong, 1);
+  assert.equal(s.games.hop.right, 1);
   assert.equal(s.mistakes, 1, '答错也记一次错');
 
-  // 在起点再答错：位置夹在 0
-  s = advance(s, 'hopAnswer', { index: 0, choice: (tiles[0].answer + 1) % 4 });
-  assert.equal(s.games.hop.tile, 0);
-  assert.equal(s.games.hop.wrong, 2);
+  // 同一格重新选对：前进一格
+  s = advance(s, 'hopAnswer', { index: 1, choice: tiles[1].answer });
+  assert.equal(s.games.hop.tile, 2);
+  assert.equal(s.games.hop.right, 2);
 
   // 一路答对走到终点
   let run = started();

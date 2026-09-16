@@ -538,21 +538,6 @@ module.exports = {
     { pair: 8, emoji: '🏅', face: '持续提高质量标准' }
   ],
 
-  // 复现异常（用实时实验台组件）：把负载推到高负载区间并保持住。
-  reproGame: {
-    code: 'LAB 01',
-    title: '复现异常',
-    npc: { name: '服务工程师 周岚', role: '现场返修', avatar: '周' },
-    brief:
-      '客户反馈：夏天中午偏差变大。先把实验台通电，再把负载推到 85% 以上并稳住 3 秒，让偏差在这里复现出来。',
-    targetMin: 85,
-    holdSeconds: 3,
-    idle: '负载还不够，继续往上推滑杆，注意功率读数与波形。',
-    needPower: '实验台还没通电，先点「通电」再调负载。',
-    success: '偏差复现成功：只有高负载工况才暴露这条链路的问题，这就是要追溯的现场条件。',
-    value: '精进'
-  },
-
   // 跳格子闯关：答对往前跳一格，答错退回一格，走到终点算通关。
   hopGame: {
     code: 'CULTURE HOP',
@@ -561,7 +546,7 @@ module.exports = {
     start: '起点 · 实验室门口',
     finish: '终点 · 点亮每一度电',
     forward: '答对了，往前跳一格！',
-    backward: '答错了，退回一格。看清这一格的知识点再来。',
+    wrong: '答错了，停在原地。看清这一格的知识点再选一次。',
     tiles: [
       {
         id: 'mission',
@@ -898,7 +883,6 @@ function initial() {
       quiz: { done: false, score: 0, results: [] },
       cert: { matched: [] },
       solution: { done: false, picks: [], perfect: false },
-      repro: { done: false, load: 0 },
       hop: { done: false, tile: 0, right: 0, wrong: 0 }
     },
     mistakes: 0,
@@ -1037,11 +1021,6 @@ function normalizeGames(raw, legacyMissions) {
     wrong: count(hop.wrong),
     done: hopTile >= hopTotal
   };
-
-  const repro = source.repro || {};
-  const reproLoad = Number.isSafeInteger(repro.load) ? Math.max(0, Math.min(100, repro.load)) : 0;
-  const reproOk = repro.done === true && reproLoad >= content.reproGame.targetMin;
-  games.repro = { done: reproOk, load: reproOk ? reproLoad : 0 };
 
   // 旧存档（v4 及更早）把章节完成状态记在 missions 上：按「已通过」补成完整记录
   if (legacyMissions) {
@@ -1184,15 +1163,10 @@ function advance(state, event, payload) {
         s.games.hop = { ...hop, tile: hop.tile + 1, right: hop.right + 1 };
         s.games.hop.done = s.games.hop.tile >= content.hopGame.tiles.length;
       } else {
+        // 答错：停在原格，提示错误让玩家重新选（不退格）
         s.mistakes += 1;
-        s.games.hop = { ...hop, tile: Math.max(0, hop.tile - 1), wrong: hop.wrong + 1 };
+        s.games.hop = { ...hop, wrong: hop.wrong + 1 };
       }
-      break;
-    }
-    case 'reproResult': {
-      const load = Number.isSafeInteger(payload && payload.load) ? payload.load : 0;
-      if (s.games.repro.done || load < content.reproGame.targetMin) break;
-      s.games.repro = { done: true, load: Math.min(100, load) };
       break;
     }
     case 'solution': {
@@ -1280,13 +1254,6 @@ function tasks(s) {
       page: '/pages/quiz/quiz'
     },
     {
-      id: 'repro',
-      icon: '🎚️',
-      name: '复现异常（实验台）',
-      done: s.games.repro.done,
-      page: '/pages/repro/repro'
-    },
-    {
       id: 'hop',
       icon: '🦘',
       name: '文化跳格子',
@@ -1357,7 +1324,6 @@ function scoreboard(s) {
     },
     cert: { matched: s.games.cert.matched.length, total: content.certGame.markets.length },
     solution: s.games.solution,
-    repro: s.games.repro,
     hop: s.games.hop,
     grade: grade(s),
     progress: taskProgress(s),

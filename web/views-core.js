@@ -81,7 +81,7 @@
     const learn = App.learnProgress(s);
     const learnDone = App.learnDone(s);
     const testDone = App.testDone(s);
-    const games = ['hop', 'flip', 'crush', 'quiz', 'repro'].filter((id) =>
+    const games = ['hop', 'flip', 'crush', 'quiz'].filter((id) =>
       id === 'hop' ? s.games.hop.done : s.games[id].done
     ).length;
     return {
@@ -89,112 +89,130 @@
       test: {
         done: testDone,
         locked: !learnDone,
+        hint: '学完企业文化才能开始测试',
         tag: !learnDone ? '未解锁' : testDone ? '已完成' : `进行到第 ${App.testStep(s) + 1} 步`
       },
       games: {
         done: state.allDone(s),
         locked: !testDone,
-        tag: !testDone ? '未解锁' : `${games} / 5`
+        hint: '完成文化画像测试才能闯关',
+        tag: !testDone ? '未解锁' : `${games} / 4`
       }
     };
   }
 
-  /* ==================== 首页 ==================== */
-  pagedView('#/home', {
-    cssPage: 'home',
-    count: 3,
-    render(panel, options = {}) {
+  /* ==================== 首页（铺满宽度的落地页） ==================== */
+  App.register(
+    '#/home',
+    () => {
       const s = store().read();
-      const percent = state.percent(s);
       const entries = entryState(s);
       const next = App.nextAction(s);
-      const first = !options.wide || panel === 0;
-      const head = first
-        ? '<div class="topline"><span class="eyebrow">EASTRON / CULTURE QUEST</span><span class="pill">文化探索员</span></div>'
-        : '';
-      const warn = first ? App.warning() : '';
+      const percent = state.percent(s);
+      const learn = App.learnProgress(s);
+      const testStep = App.TEST_STEPS[App.testStep(s)].name;
 
-      if (panel === 1) {
-        return `${head}${warn}
-          <div class="panel">
-            <div class="title">三个步骤，<div>一步一步来。</div></div>
-            <button class="card chapter-card stage-button" data-action="learn">
-              <div class="chapter-head">
-                <span class="number">01</span><span class="section-title">企业文化</span>
-                <span class="tag">${entries.learn.tag}</span>
-              </div>
-              <div class="muted">学习四个模块：文化坐标 · 产品模块 · 价值观 · 走向世界</div>
-              <div class="small muted">先学清楚，再去做判断</div>
-            </button>
-            <button class="card chapter-card stage-button" data-action="test">
-              <div class="chapter-head">
-                <span class="number">02</span><span class="section-title">文化画像测试</span>
-                <span class="tag">${entries.test.tag}</span>
-              </div>
-              <div class="muted">质量值班 · 认证配对 · 方案组卡</div>
-              <div class="small muted">${entries.test.locked ? '学完企业文化后解锁' : '用学到的内容做判断，生成你的画像'}</div>
-            </button>
-            <button class="card chapter-card stage-button" data-action="games">
-              <div class="chapter-head">
-                <span class="number">03</span><span class="section-title">闯关小游戏</span>
-                <span class="tag">${entries.games.tag}</span>
-              </div>
-              <div class="muted">跳格子 · 配对 · 三消 · 答题 · 实验台</div>
-              <div class="small muted">${entries.games.locked ? '完成画像测试后解锁' : '成绩计入通关结算'}</div>
-            </button>
-          </div>`;
-      }
+      const flowCard = (step, action, number, name, status, lines) => `
+        <button class="flow-card ${status.done ? 'done' : ''} ${status.locked ? 'locked' : ''}" data-action="${action}">
+          <div class="flow-head">
+            <span class="flow-number">${number}</span>
+            <span class="flow-name">${name}</span>
+            <span class="tag">${status.tag}</span>
+          </div>
+          ${lines.map((line) => `<span class="flow-line">${esc(line)}</span>`).join('')}
+          <span class="flow-cta">${status.locked ? '🔒 ' + status.hint : status.done ? '已完成，可回看 →' : '进入 →'}</span>
+        </button>`;
 
-      if (panel === 2) {
-        return `${head}${warn}
-          <div class="panel">
-            <div class="title">我们的方向</div>
-            <div class="card">
-              <div class="label">愿景</div><div class="quote">${esc(content.culture.vision)}</div>
-              <div class="line"></div>
-              <div class="label">理念</div><div class="quote">${esc(content.culture.belief)}</div>
-            </div>
-            <div class="values">${content.culture.values.map((v) => `<span>${esc(v.name)}</span>`).join('')}</div>
-            <div class="card">
-              <div class="row"><span>探索进度</span><span>${percent}%</span></div>
-              <div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div>
-              <div class="small muted">${esc(content.company)}</div>
-            </div>
-            <button class="primary" data-action="progress">查看探索档案</button>
-          </div>`;
-      }
+      App.mount(
+        `
+        <div class="topline">
+          <span class="eyebrow">EASTRON / CULTURE QUEST</span>
+          <span class="pill">文化探索员</span>
+        </div>
+        ${App.warning()}
 
-      return `${head}${warn}
-        <div class="panel">
-          <div>
+        <section class="home-hero">
+          <div class="home-copy">
             <div class="subtitle">每一度电背后，都有一个答案。</div>
             <div class="hero-title">东鸿密钥<span>·</span></div>
             <div class="hero-sub">点亮每一度电</div>
+            <div class="small muted">三步走：先学企业文化，再做出判断，最后闯关。</div>
           </div>
-          <div class="network-space"><canvas id="hero-network"></canvas></div>
-          <div class="culture"><div class="label">我们的使命</div><div class="quote">${esc(content.culture.mission)}</div></div>
-          <button class="primary" data-action="next-step">${next.label} ↗</button>
-        </div>`;
-    },
-    mount(root, panel) {
-      if (panel !== 0) return;
-      const s = store().read();
-      App.network(document.getElementById('hero-network'), () =>
-        s.prologueDone ? Math.min(6, 2 + s.decisions.length) : 0
+          <div class="home-canvas"><canvas id="hero-network"></canvas></div>
+          <div class="home-mission">
+            <div class="culture">
+              <div class="label">我们的使命</div>
+              <div class="quote">${esc(content.culture.mission)}</div>
+            </div>
+            <button class="primary" data-action="next-step">${esc(next.label)} ↗</button>
+          </div>
+        </section>
+
+        <section class="home-flow">
+          <div class="home-flow-title">按顺序走完三块内容</div>
+          <div class="flow-row">
+            ${flowCard(1, 'learn', '01', '企业文化', entries.learn, [
+              '四个模块：文化坐标 · 产品模块 · 价值观 · 走向世界',
+              `学习进度 ${learn.done} / ${learn.total} 个模块`,
+              '先学清楚，再去做判断'
+            ])}
+            <div class="flow-arrow">→</div>
+            ${flowCard(2, 'test', '02', '文化画像测试', entries.test, [
+              '质量值班 · 认证配对 · 方案组卡',
+              `当前进度：${entries.test.locked ? '待解锁' : testStep}`,
+              '用学到的内容做判断，生成你的画像'
+            ])}
+            <div class="flow-arrow">→</div>
+            ${flowCard(3, 'games', '03', '闯关小游戏', entries.games, [
+              '文化跳格子 · 模块配对 · 能量三消 · 知识答题',
+              `${entries.games.tag}`,
+              '成绩计入通关结算的 GRADE 评级'
+            ])}
+          </div>
+        </section>
+
+        <section class="home-about">
+          <div class="card">
+            <div class="label">愿景</div>
+            <div class="quote">${esc(content.culture.vision)}</div>
+            <div class="line"></div>
+            <div class="label">理念</div>
+            <div class="quote">${esc(content.culture.belief)}</div>
+          </div>
+          <div class="card">
+            <div class="label">价值观</div>
+            <div class="values">${content.culture.values.map((v) => `<span>${esc(v.name)}</span>`).join('')}</div>
+            <div class="small muted">守正 · 务实 · 创新 · 精进，都会在测试里被检验。</div>
+          </div>
+          <div class="card">
+            <div class="row"><span class="label">探索进度</span><span class="trust-num">${percent}%</span></div>
+            <div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div>
+            <div class="small muted">${esc(content.company)}</div>
+            <button class="secondary" data-action="progress">查看探索档案</button>
+          </div>
+        </section>`,
+        (root) => {
+          App.network(document.getElementById('hero-network'), () =>
+            s.prologueDone ? Math.min(6, 2 + s.decisions.length) : 0
+          );
+          App.on(root, '[data-action]', 'click', (event, hit) => {
+            const action = hit.dataset.action;
+            const fresh = store().read();
+            if (action === 'next-step') return App.go(App.nextAction(fresh).hash);
+            if (action === 'learn')
+              return App.go(App.learnDone(fresh) ? '#/learn/done' : '#/learn');
+            if (action === 'test') {
+              if (!App.learnDone(fresh)) return App.go('#/learn');
+              return App.go(`#/test/${App.TEST_STEPS[App.testStep(fresh)].id}`);
+            }
+            if (action === 'games') return App.go('#/games');
+            if (action === 'progress') return App.go('#/progress');
+          });
+        }
       );
     },
-    action(action, hit, api) {
-      const s = store().read();
-      if (action === 'next-step') return App.go(App.nextAction(s).hash);
-      if (action === 'learn') return App.go(App.learnDone(s) ? '#/learn/done' : '#/learn');
-      if (action === 'test') {
-        if (!App.learnDone(s)) return App.go('#/learn');
-        return App.go(`#/test/${App.TEST_STEPS[App.testStep(s)].id}`);
-      }
-      if (action === 'games') return App.go('#/games');
-      if (action === 'progress') return App.go('#/progress');
-    }
-  });
+    'home'
+  );
 
   /* ==================== 序章 ==================== */
   pagedView('#/prologue', {
@@ -258,8 +276,7 @@
           ? `${s.games.quiz.score} 分`
           : s.games.quiz.results.length
             ? `进行中 ${s.games.quiz.results.length} 题`
-            : '未完成',
-        repro: s.games.repro.done ? `${s.games.repro.load}%` : '未完成'
+            : '未完成'
       };
 
       if (panel === 1) {
@@ -307,7 +324,6 @@
               <div class="row small"><span>模块配对</span><span>${scores.flip}</span></div>
               <div class="row small"><span>能量三消</span><span>${scores.crush}</span></div>
               <div class="row small"><span>知识答题</span><span>${scores.quiz}</span></div>
-              <div class="row small"><span>复现异常</span><span>${scores.repro}</span></div>
               <div class="row small"><span>客户信任</span><span>${s.trust} / 100</span></div>
             </div>
             <div class="card">进度只保存在当前浏览器。清除缓存或换设备后无法恢复。<div class="line"></div><div class="muted">本原型不采集员工身份信息。</div></div>

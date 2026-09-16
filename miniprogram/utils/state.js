@@ -89,7 +89,6 @@ function initial() {
       quiz: { done: false, score: 0, results: [] },
       cert: { matched: [] },
       solution: { done: false, picks: [], perfect: false },
-      repro: { done: false, load: 0 },
       hop: { done: false, tile: 0, right: 0, wrong: 0 }
     },
     mistakes: 0,
@@ -228,11 +227,6 @@ function normalizeGames(raw, legacyMissions) {
     wrong: count(hop.wrong),
     done: hopTile >= hopTotal
   };
-
-  const repro = source.repro || {};
-  const reproLoad = Number.isSafeInteger(repro.load) ? Math.max(0, Math.min(100, repro.load)) : 0;
-  const reproOk = repro.done === true && reproLoad >= content.reproGame.targetMin;
-  games.repro = { done: reproOk, load: reproOk ? reproLoad : 0 };
 
   // 旧存档（v4 及更早）把章节完成状态记在 missions 上：按「已通过」补成完整记录
   if (legacyMissions) {
@@ -375,15 +369,10 @@ function advance(state, event, payload) {
         s.games.hop = { ...hop, tile: hop.tile + 1, right: hop.right + 1 };
         s.games.hop.done = s.games.hop.tile >= content.hopGame.tiles.length;
       } else {
+        // 答错：停在原格，提示错误让玩家重新选（不退格）
         s.mistakes += 1;
-        s.games.hop = { ...hop, tile: Math.max(0, hop.tile - 1), wrong: hop.wrong + 1 };
+        s.games.hop = { ...hop, wrong: hop.wrong + 1 };
       }
-      break;
-    }
-    case 'reproResult': {
-      const load = Number.isSafeInteger(payload && payload.load) ? payload.load : 0;
-      if (s.games.repro.done || load < content.reproGame.targetMin) break;
-      s.games.repro = { done: true, load: Math.min(100, load) };
       break;
     }
     case 'solution': {
@@ -471,13 +460,6 @@ function tasks(s) {
       page: '/pages/quiz/quiz'
     },
     {
-      id: 'repro',
-      icon: '🎚️',
-      name: '复现异常（实验台）',
-      done: s.games.repro.done,
-      page: '/pages/repro/repro'
-    },
-    {
       id: 'hop',
       icon: '🦘',
       name: '文化跳格子',
@@ -548,7 +530,6 @@ function scoreboard(s) {
     },
     cert: { matched: s.games.cert.matched.length, total: content.certGame.markets.length },
     solution: s.games.solution,
-    repro: s.games.repro,
     hop: s.games.hop,
     grade: grade(s),
     progress: taskProgress(s),

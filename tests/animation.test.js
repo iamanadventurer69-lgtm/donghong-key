@@ -46,20 +46,3 @@ test('能源动画隐藏/卸载时取消循环，恢复时只有一个循环', (
   def.lifetimes.detached.call(p);
   assert.equal(scheduled.size, 0);
 });
-test('实验台负载改变功率，断电归零并停帧，通电恢复，隐藏停帧', () => {
-  const { def, instance: p, scheduled } = component('live-meter');
-  p.start();
-  p.changeLoad({ detail: { value: 80 } });
-  assert.equal(p.data.power, '1840');
-  p.toggle();
-  assert.equal(p.data.power, '0000');
-  assert.equal(scheduled.size, 0);
-  p.changeLoad({ detail: { value: 40 } });
-  assert.equal(p.data.power, '0000');
-  p.toggle();
-  assert.equal(p.data.power, '920');
-  assert.equal(scheduled.size, 1);
-  def.pageLifetimes.hide.call(p);
-  assert.equal(scheduled.size, 0);
-  def.lifetimes.detached.call(p);
-});

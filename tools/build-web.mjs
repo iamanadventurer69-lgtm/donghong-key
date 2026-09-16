@@ -147,7 +147,6 @@ function generateStyles() {
   const files = [
     { file: 'app.wxss', scope: null },
     { file: 'components/energy-network/energy-network.wxss', scope: '.component-host' },
-    { file: 'components/live-meter/live-meter.wxss', scope: '.component-host' },
     ...fs
       .readdirSync(path.join(mini, 'pages'))
       .sort()

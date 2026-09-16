@@ -37,8 +37,8 @@
       >{{item}}</button>
     </view>
     <view class="feedback {{rightAnswer?'good':'bad'}}" wx:if="{{answered}}">{{feedback}}</view>
-    <button class="primary" wx:if="{{answered}}" bindtap="go">{{rightAnswer?'向前跳一格 →':'退回一格继续 →'}}</button>
-    <view class="hint" wx:else>答对往前跳一格，答错退回一格</view>
+    <button class="primary" wx:if="{{answered}}" bindtap="go">{{rightAnswer?'向前跳一格 →':'重新选一次 →'}}</button>
+    <view class="hint" wx:else>答对往前跳一格，答错停在原地重选</view>
   </view>
   <view class="mask" wx:if="{{done}}">
     <view class="sheet">

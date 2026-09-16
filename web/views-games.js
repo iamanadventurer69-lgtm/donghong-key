@@ -1,9 +1,10 @@
 /**
- * 网页版小游戏：小游戏区、文化跳格子、模块配对、能量三消、知识答题、复现异常。
- * 对应小程序的 pages/games、hop、flip、crush、quiz、repro。
+ * 网页版小游戏：小游戏区、文化跳格子（按压蓄力选答案）、模块配对（牌面正面朝上）、
+ * 能量三消、知识答题，以及通关结算。
+ * 对应小程序的 pages/games、hop、flip、crush、quiz。
  *
- * 高频交互（翻牌 / 三消 / 实验台）用直改 DOM + 自己的定时器，
- * 定时器在离开页面时自动停（tick 里检查当前路由），避免切屏后还在跑。
+ * 高频交互（三消 / 蓄力指针）用直改 DOM + 自己的定时器；定时器在离开页面时自停
+ * （tick 里检查当前路由），避免切屏后还在跑。
  */
 (function (App) {
   const { state, content, match3, esc } = App;
@@ -11,16 +12,21 @@
   const here = (hash) => location.hash === hash;
   const $ = (id) => document.getElementById(id);
 
-  /* ==================== 小游戏区 ==================== */
   const GAME_LIST = [
     {
       id: 'hop',
       hash: '#/hop',
       icon: '🦘',
       name: '文化跳格子',
-      hint: '答对前进一格，答错退回一格'
+      hint: '按住蓄力，指针停在哪就选哪'
     },
-    { id: 'flip', hash: '#/flip', icon: '🃏', name: '模块配对', hint: '把模块与它的职责配成对' },
+    {
+      id: 'flip',
+      hash: '#/flip',
+      icon: '🃏',
+      name: '模块配对',
+      hint: '牌都正面朝上，直接点两张配对'
+    },
     {
       id: 'crush',
       hash: '#/crush',
@@ -28,14 +34,7 @@
       name: '能量三消',
       hint: '60 秒内多消几组，连击翻倍'
     },
-    { id: 'quiz', hash: '#/quiz', icon: '📝', name: '知识答题', hint: '十题一百分，答完给解释' },
-    {
-      id: 'repro',
-      hash: '#/repro',
-      icon: '🎚️',
-      name: '复现异常',
-      hint: '通电后把负载推到 85% 以上并稳住'
-    }
+    { id: 'quiz', hash: '#/quiz', icon: '📝', name: '知识答题', hint: '十题一百分，答完给解释' }
   ];
 
   function gameDone(id, s) {
@@ -54,169 +53,274 @@
     if (id === 'flip') return g.flip.done ? `${g.flip.moves} 步` : '';
     if (id === 'crush') return g.crush.done ? `${g.crush.score} 分` : '';
     if (id === 'quiz') return g.quiz.done ? `${g.quiz.score} 分` : '';
-    if (id === 'repro') return g.repro.done ? `${g.repro.load}%` : '';
     return '';
   }
 
-  App.register('#/games', () => {
-    const s = store().read();
-    // 解锁条件：企业文化学习 + 文化画像测试全部完成
-    const unlocked = App.testDone(s);
-    const done = GAME_LIST.filter((game) => gameDone(game.id, s)).length;
-    App.mount(
-      `
-      ${App.topbar(
-        'CHALLENGE ZONE / 闯关小游戏',
-        '<button class="text-button" data-action="back">返回首页</button>'
-      )}
-      <div class="hud ${unlocked ? '' : 'locked'}">
-        <div class="row"><span class="label">${unlocked ? '小游戏进度' : '尚未解锁'}</span><span class="hud-num">${done} / ${GAME_LIST.length}</span></div>
-        <div class="track"><div class="track-fill" style="width:${(done / GAME_LIST.length) * 100}%"></div></div>
-        <div class="small muted">${unlocked ? '选一个开始，成绩都会记进探索档案' : '完成「文化画像测试」（学习 + 值班 / 认证 / 组卡）后解锁'}</div>
-      </div>
-      <div class="list">
-        ${GAME_LIST.map((game) => {
-          const finished = gameDone(game.id, s);
-          return `<button class="game ${finished ? 'done' : ''}" data-action="open" data-id="${game.id}">
-            <span class="game-icon">${game.icon}</span>
-            <div class="game-main">
-              <span class="game-name">${esc(game.name)}</span>
-              <span class="game-hint">${esc(game.hint)}</span>
-            </div>
-            ${gameScore(game.id, s) ? `<span class="game-score">${esc(gameScore(game.id, s))}</span>` : ''}
-            <span class="game-state">${finished ? '✓' : unlocked ? '›' : '🔒'}</span>
-          </button>`;
-        }).join('')}
-      </div>
-      <div class="feedback" id="games-feedback" hidden></div>
-      <div class="hint">${unlocked ? '成绩计入通关结算的 GRADE 评级' : '小游戏：跳格子 / 配对 / 三消 / 答题 / 实验台'}</div>
-      ${unlocked ? '<button class="secondary" data-action="to-final">查看通关结算 →</button>' : '<button class="secondary" data-action="to-test">← 先去完成文化画像测试</button>'}
-      ${App.warning()}`,
-      (root) => {
-        App.on(root, '[data-action]', 'click', (event, hit) => {
-          const action = hit.dataset.action;
-          if (action === 'back') return App.go('#/home');
-          if (action === 'to-test')
-            return App.go(`#/test/${App.TEST_STEPS[App.testStep(store().read())].id}`);
-          if (action === 'to-final') return App.go('#/final');
-          if (action === 'open') {
-            if (!unlocked) {
-              const feedback = root.querySelector('#games-feedback');
-              feedback.textContent =
-                '先完成企业文化模块（文化介绍打卡 + 三个互动关卡），再来闯关。';
-              feedback.hidden = false;
-              return;
-            }
-            const game = GAME_LIST.find((item) => item.id === hit.dataset.id);
-            App.go(game.hash);
-          }
-        });
-      }
-    );
-  });
+  /* ==================== 小游戏区 ==================== */
+  App.register(
+    '#/games',
+    () => {
+      const s = store().read();
+      // 解锁条件：企业文化学习 + 文化画像测试全部完成
+      const unlocked = App.testDone(s);
+      const done = GAME_LIST.filter((game) => gameDone(game.id, s)).length;
 
-  /* ==================== 文化跳格子 ==================== */
-  let hopPending = null; // 已经选完但还没点「继续」的那一步
-
-  App.register('#/hop', () => {
-    const s = store().read();
-    const game = content.hopGame;
-    const total = game.tiles.length;
-    const tile = Math.min(s.games.hop.tile, total - 1);
-    const done = s.games.hop.done;
-    // 刚答完还停在结果态时，展示的是「刚答的那一格」，不是新位置那一格
-    const answered = Boolean(hopPending);
-    const current = game.tiles[answered ? hopPending.index : tile];
-
-    const stones = game.tiles
-      .map((item, index) => {
-        const passed = index < s.games.hop.tile;
-        const isHere = !done && index === s.games.hop.tile;
-        const goal = index === total - 1;
-        return `<div class="stone ${passed ? 'passed' : ''} ${isHere ? 'here' : ''} ${goal ? 'goal' : ''}">
-          <span class="stone-label">${goal ? '终点' : index + 1}</span>
-          <span class="stone-name">${esc(item.name)}</span>
-          ${isHere ? '<span class="hopper">🦘</span>' : ''}
-        </div>`;
-      })
-      .join('');
-
-    App.mount(
-      `
-      ${App.topbar('CULTURE HOP / 文化跳格子', '<button class="text-button" data-action="back">返回闯关</button>')}
-      <div class="hud">
-        <div class="hud-item"><span class="hud-val">${s.games.hop.tile}<span class="hud-sub">/${total}</span></span><span class="hud-lbl">已跳过</span></div>
-        <div class="hud-item"><span class="hud-val">${s.games.hop.right}</span><span class="hud-lbl">答对</span></div>
-        <div class="hud-item"><span class="hud-val">${s.games.hop.wrong}</span><span class="hud-lbl">答错</span></div>
-      </div>
-      <div class="stones">${stones}</div>
-      <div class="panel">
-        <div class="tile-head">
-          <span class="tile-index">第 ${(answered ? hopPending.index : tile) + 1} 格</span>
-          <span class="tile-name">${esc(current.name)}</span>
+      App.mount(
+        `
+        ${App.topbar('CHALLENGE ZONE / 闯关小游戏', '<button class="text-button" data-action="back">返回首页</button>')}
+        <div class="hud ${unlocked ? '' : 'locked'}">
+          <div class="row"><span class="label">${unlocked ? '小游戏进度' : '尚未解锁'}</span><span class="hud-num">${done} / ${GAME_LIST.length}</span></div>
+          <div class="track"><div class="track-fill" style="width:${(done / GAME_LIST.length) * 100}%"></div></div>
+          <div class="small muted">${unlocked ? '选一个开始，成绩都会记进探索档案' : '完成「文化画像测试」（学习 + 值班 / 认证 / 组卡）后解锁'}</div>
         </div>
-        <div class="tile-point">${esc(current.point)}</div>
-        <div class="q-text">${esc(current.question)}</div>
-        <div class="q-opts">
-          ${current.options
-            .map((option, index) => {
-              const cls = answered
-                ? `${index === current.answer ? 'right' : ''} ${index === hopPending.choice && !hopPending.right ? 'wrong' : ''}`
-                : '';
-              return `<button class="option ${cls}" data-action="pick" data-index="${index}">${esc(option)}</button>`;
-            })
-            .join('')}
+        <div class="list">
+          ${GAME_LIST.map((game) => {
+            const finished = gameDone(game.id, s);
+            const score = gameScore(game.id, s);
+            return `<button class="game ${finished ? 'done' : ''}" data-action="open" data-id="${game.id}">
+              <span class="game-icon">${game.icon}</span>
+              <div class="game-main">
+                <span class="game-name">${esc(game.name)}</span>
+                <span class="game-hint">${esc(game.hint)}</span>
+              </div>
+              ${score ? `<span class="game-score">${esc(score)}</span>` : ''}
+              <span class="game-state">${finished ? '✓' : unlocked ? '›' : '🔒'}</span>
+            </button>`;
+          }).join('')}
+        </div>
+        <div class="feedback" id="games-feedback" hidden></div>
+        <div class="hint">${unlocked ? '成绩计入通关结算的 GRADE 评级' : '小游戏：跳格子 / 配对 / 三消 / 答题'}</div>
+        ${unlocked ? '<button class="secondary" data-action="to-final">查看通关结算 →</button>' : '<button class="secondary" data-action="to-test">← 先去完成文化画像测试</button>'}
+        ${App.warning()}`,
+        (root) => {
+          App.on(root, '[data-action]', 'click', (event, hit) => {
+            const action = hit.dataset.action;
+            if (action === 'back') return App.go('#/home');
+            if (action === 'to-test')
+              return App.go(`#/test/${App.TEST_STEPS[App.testStep(store().read())].id}`);
+            if (action === 'to-final') return App.go('#/final');
+            if (action === 'open') {
+              if (!unlocked) {
+                const feedback = root.querySelector('#games-feedback');
+                feedback.textContent =
+                  '先完成文化画像测试（学习 + 值班 / 认证 / 组卡），再来闯关。';
+                feedback.hidden = false;
+                return;
+              }
+              const game = GAME_LIST.find((item) => item.id === hit.dataset.id);
+              App.go(game.hash);
+            }
+          });
+        }
+      );
+    },
+    'games'
+  );
+
+  /* ==================== 文化跳格子：按压蓄力选答案 ==================== */
+  const HOP = content.hopGame;
+  const HOP_TOTAL = HOP.tiles.length;
+  /** 指针扫过一项所需时间（毫秒）：按住越久走得越远。 */
+  const HOP_STEP_MS = 240;
+
+  let hopPointer = 0;
+  let hopCharging = false;
+  let hopRaf = null;
+  let hopStartedAt = 0;
+  let hopResult = null;
+
+  function hopStones(tile, done) {
+    return HOP.tiles.map((item, index) => ({
+      key: item.id,
+      label: index === HOP_TOTAL - 1 ? '终点' : String(index + 1),
+      name: item.name,
+      goal: index === HOP_TOTAL - 1,
+      passed: index < tile,
+      here: !done && index === tile
+    }));
+  }
+
+  /** 三角波：0 → n-1 → 0 往返，按压时间变成指针位置。 */
+  function hopWave(elapsed, count) {
+    const span = count - 1;
+    if (span <= 0) return 0;
+    const period = 2 * span;
+    const pos = (((elapsed / HOP_STEP_MS) % period) + period) % period;
+    return pos <= span ? pos : period - pos;
+  }
+
+  App.register(
+    '#/hop',
+    () => {
+      if (App.prevHash !== '#/hop') hopResult = null;
+      const s = store().read();
+      const hop = s.games.hop;
+      const tile = Math.min(hop.tile, HOP_TOTAL - 1);
+      const current = HOP.tiles[tile];
+      const done = hop.done;
+
+      const rows = current.options
+        .map((option, index) => {
+          let cls = '';
+          if (hopResult && index === hopResult.index) cls = hopResult.right ? 'right' : 'wrong';
+          else if (!hopResult && hopCharging && Math.round(hopPointer) === index) cls = 'focus';
+          return `<div class="hop-row ${cls}" data-row="${index}"><span class="letter">${'ABCD'[index]}</span><span>${esc(option)}</span></div>`;
+        })
+        .join('');
+
+      App.mount(
+        `
+        ${App.topbar('CULTURE HOP / 文化跳格子', '<button class="text-button" data-action="back">返回闯关</button>')}
+        <div class="hud">
+          <div class="hud-item"><span class="hud-val">${hop.tile}<span class="hud-sub">/${HOP_TOTAL}</span></span><span class="hud-lbl">已跳过</span></div>
+          <div class="hud-item"><span class="hud-val">${hop.right}</span><span class="hud-lbl">答对</span></div>
+          <div class="hud-item"><span class="hud-val">${hop.wrong}</span><span class="hud-lbl">答错</span></div>
+        </div>
+        <div class="stones">${hopStones(hop.tile, done)
+          .map(
+            (
+              stone
+            ) => `<div class="stone ${stone.passed ? 'passed' : ''} ${stone.here ? 'here' : ''} ${stone.goal ? 'goal' : ''}">
+              <span class="stone-label">${stone.label}</span>
+              <span class="stone-name">${esc(stone.name)}</span>
+              ${stone.here ? '<span class="hopper">🦘</span>' : ''}
+            </div>`
+          )
+          .join('')}</div>
+        <div class="hop-problem">
+          <div class="hop-tile-head">
+            <span class="hop-tile-index">第 ${tile + 1} 格</span>
+            <span class="hop-tile-name">${esc(current.name)}</span>
+          </div>
+          <div class="hop-point">${esc(current.point)}</div>
+          <div class="hop-question">${esc(current.question)}</div>
         </div>
         ${
-          answered
-            ? `<div class="feedback ${hopPending.right ? 'good' : 'bad'}">${esc(hopPending.feedback)}</div>
-               <button class="primary" data-action="go">${hopPending.right ? '向前跳一格 →' : '退回一格继续 →'}</button>`
-            : '<div class="hint">答对往前跳一格，答错退回一格</div>'
+          hopResult
+            ? `<div class="hop-feedback ${hopResult.right ? 'good' : 'bad'}">${esc(hopResult.text)}</div>
+               <div class="hop-actions">
+                 ${
+                   hopResult.right
+                     ? `<button class="primary" data-action="go">${done ? '走到终点了，看我表现 →' : '继续下一格 →'}</button>`
+                     : '<button class="primary" data-action="retry">重新选一次</button>'
+                 }
+               </div>`
+            : `<div class="hop-dock" id="hop-dock">
+                 <div class="hop-pointer" id="hop-pointer"></div>
+                 ${rows}
+               </div>
+               <div class="hop-press-hint">按住工作栏蓄力 · 指针上下移动 · 松手即选中</div>`
         }
-      </div>
-      ${
-        done
-          ? `<div class="mask"><div class="sheet">
-              <div class="win-title">🏁 你走到了终点</div>
-              <div class="win-text">${esc(game.finish)}</div>
-              <div class="win-stats">共答对 ${s.games.hop.right} 题，答错 ${s.games.hop.wrong} 次</div>
-              <div class="win-rank">${s.games.hop.wrong <= 2 ? '⭐ 一次跳过：企业文化很扎实' : s.games.hop.wrong <= 5 ? '👍 稳稳走完了全程' : '💪 走完了，回头再看看错过的格子'}</div>
-              <button class="primary" data-action="finish">回到小游戏 →</button>
-            </div></div>`
-          : ''
-      }
-      ${App.warning()}`,
-      (root) => {
-        App.on(root, '[data-action]', 'click', (event, hit) => {
-          const action = hit.dataset.action;
-          if (action === 'back') return App.go('#/games');
-          if (action === 'finish') return App.go('#/games');
-          if (action === 'pick') {
-            if (hopPending) return;
-            const choice = Number(hit.dataset.index);
-            const right = choice === current.answer;
-            store().dispatch('hopAnswer', { index: s.games.hop.tile, choice });
-            hopPending = {
-              index: s.games.hop.tile,
-              choice,
-              right,
-              feedback: right
-                ? `${game.forward} ${current.explain}`
-                : `${game.backward} ${current.explain}`
-            };
-            return App.render();
-          }
-          if (action === 'go') {
-            hopPending = null;
-            App.render();
-          }
-        });
-      }
-    );
-  });
+        ${
+          done && !hopResult
+            ? `<div class="mask"><div class="sheet">
+                <div class="win-title">🏁 你走到了终点</div>
+                <div class="win-text">${esc(HOP.finish)}</div>
+                <div class="win-stats">共答对 ${hop.right} 题，答错 ${hop.wrong} 次</div>
+                <div class="win-rank">${hop.wrong <= 2 ? '⭐ 几乎没失手' : hop.wrong <= 6 ? '👍 稳稳走完了全程' : '💪 走完了，回头再看错过的格子'}</div>
+                <button class="primary" data-action="back">回到小游戏 →</button>
+              </div></div>`
+            : ''
+        }
+        ${App.warning()}`,
+        (root) => {
+          const dock = root.querySelector('#hop-dock');
+          const pointerNode = root.querySelector('#hop-pointer');
 
-  /* ==================== 模块配对（翻牌） ==================== */
-  const PAIR_TOTAL = content.memory.length / 2;
+          const paintPointer = () => {
+            if (!dock || !pointerNode) return;
+            const rowNodes = dock.querySelectorAll('.hop-row');
+            if (rowNodes.length === 0) return;
+            const rowHeight = dock.clientHeight / rowNodes.length;
+            const index = Math.round(hopPointer);
+            pointerNode.style.height = `${rowHeight - 10}px`;
+            pointerNode.style.top = `${index * rowHeight + 5}px`;
+            rowNodes.forEach((row, i) => row.classList.toggle('focus', i === index));
+          };
+
+          const stopCharging = () => {
+            if (hopRaf != null) cancelAnimationFrame(hopRaf);
+            hopRaf = null;
+            hopCharging = false;
+            if (dock) dock.classList.remove('charging');
+          };
+
+          const tick = () => {
+            hopRaf = requestAnimationFrame(tick);
+            hopPointer = hopWave(performance.now() - hopStartedAt, current.options.length);
+            paintPointer();
+          };
+
+          const begin = () => {
+            if (hopResult || done || !dock) return;
+            hopCharging = true;
+            hopStartedAt = performance.now();
+            hopPointer = 0;
+            dock.classList.add('charging');
+            paintPointer();
+            if (hopRaf == null) hopRaf = requestAnimationFrame(tick);
+          };
+
+          const release = () => {
+            if (!hopCharging) return;
+            stopCharging();
+            const index = Math.max(0, Math.min(current.options.length - 1, Math.round(hopPointer)));
+            const right = index === current.answer;
+            store().dispatch('hopAnswer', { index: hop.tile, choice: index });
+            hopResult = right
+              ? { right: true, index, text: `${HOP.forward} ${current.explain}` }
+              : { right: false, index, text: HOP.wrong };
+            App.render();
+          };
+
+          if (dock) {
+            for (const [down, up] of [
+              ['pointerdown', 'pointerup'],
+              ['touchstart', 'touchend'],
+              ['mousedown', 'mouseup']
+            ]) {
+              dock.addEventListener(down, (event) => {
+                event.preventDefault();
+                begin();
+              });
+              dock.addEventListener(up, (event) => {
+                event.preventDefault();
+                release();
+              });
+            }
+            dock.addEventListener('pointercancel', () => {
+              stopCharging();
+              App.render();
+            });
+            paintPointer();
+          }
+
+          App.onCleanup(stopCharging);
+
+          App.on(root, '[data-action]', 'click', (event, hit) => {
+            const action = hit.dataset.action;
+            if (action === 'back') {
+              hopResult = null;
+              return App.go('#/games');
+            }
+            if (action === 'retry') {
+              hopResult = null;
+              return App.render();
+            }
+            if (action === 'go') {
+              hopResult = null;
+              if (store().read().games.hop.done) return App.go('#/games');
+              return App.render();
+            }
+          });
+        }
+      );
+    },
+    'hop'
+  );
+
+  /* ==================== 模块配对：牌面全部正面朝上，直接点两张配对 ==================== */
+  const FLIP_PAIRS = content.memory.length / 2;
   let flipDeck = null;
   let flipOpen = [];
   let flipMatched = 0;
@@ -226,9 +330,13 @@
   let flipBusy = false;
   let flipWon = false;
 
+  function flipTimeText(seconds) {
+    return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+  }
+
   function flipReset() {
     flipDeck = content.memory
-      .map((card) => ({ ...card, up: false, done: false }))
+      .map((card) => ({ ...card, done: false, bad: false }))
       .sort(() => Math.random() - 0.5);
     flipOpen = [];
     flipMatched = 0;
@@ -250,119 +358,117 @@
       }
       flipSeconds += 1;
       const node = $('flip-time');
-      if (node) node.textContent = timeText(flipSeconds);
+      if (node) node.textContent = flipTimeText(flipSeconds);
     }, 1000);
   }
 
-  function timeText(seconds) {
-    return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
-  }
+  App.register(
+    '#/flip',
+    () => {
+      if (!flipDeck) flipReset();
+      App.mount(
+        `
+        ${App.topbar('MEMORY / 模块配对', '<button class="text-button" data-action="back">返回闯关</button>')}
+        <div class="hud">
+          <div class="hud-item"><span class="hud-val" id="flip-moves">${flipMoves}</span><span class="hud-lbl">步数</span></div>
+          <div class="hud-item"><span class="hud-val"><span id="flip-pairs">${flipMatched}</span><span class="hud-sub">/${FLIP_PAIRS}</span></span><span class="hud-lbl">配对</span></div>
+          <div class="hud-item"><span class="hud-val" id="flip-time">${flipTimeText(flipSeconds)}</span><span class="hud-lbl">用时</span></div>
+        </div>
+        <div class="grid" id="flip-grid">
+          ${flipDeck
+            .map(
+              (
+                card,
+                index
+              ) => `<div class="card ${card.done ? 'matched' : ''} ${card.bad ? 'bad' : ''} ${flipOpen.includes(index) ? 'picked' : ''}" data-index="${index}">
+                <span class="emoji">${card.emoji}</span>
+                <span class="label">${esc(card.face)}</span>
+              </div>`
+            )
+            .join('')}
+        </div>
+        <button class="secondary" data-action="restart">🔄 重新开始</button>
+        <div class="hint">牌面都是正面：点两张能配成对的（名字 ↔ 职责） · 共 ${FLIP_PAIRS} 对</div>
+        <div class="mask" id="flip-win" ${flipWon ? '' : 'hidden'}><div class="sheet">
+          <div class="win-title">🎉 全部配对成功！</div>
+          <div class="win-text">用时 ${flipTimeText(flipSeconds)}，共 ${flipMoves} 步</div>
+          <div class="win-rank">${flipMoves <= FLIP_PAIRS + 4 ? '⭐ 一眼看穿' : '👍 稳稳配对'}</div>
+          <button class="primary" data-action="back">回到小游戏 →</button>
+          <button class="secondary" data-action="restart">🔄 再来一局</button>
+        </div></div>
+        ${App.warning()}`,
+        (root) => {
+          const paint = () => {
+            flipDeck.forEach((card, index) => {
+              const node = root.querySelector(`.card[data-index="${index}"]`);
+              node.classList.toggle('matched', card.done);
+              node.classList.toggle('bad', card.bad);
+              node.classList.toggle('picked', flipOpen.includes(index));
+            });
+            $('flip-moves').textContent = flipMoves;
+            $('flip-pairs').textContent = flipMatched;
+            $('flip-time').textContent = flipTimeText(flipSeconds);
+          };
 
-  App.register('#/flip', () => {
-    if (!flipDeck) flipReset();
-    App.mount(
-      `
-      ${App.topbar('MEMORY / 模块配对', '<button class="text-button" data-action="back">返回闯关</button>')}
-      <div class="hud">
-        <div class="hud-item"><span class="hud-val" id="flip-moves">${flipMoves}</span><span class="hud-lbl">步数</span></div>
-        <div class="hud-item"><span class="hud-val"><span id="flip-pairs">${flipMatched}</span><span class="hud-sub">/${PAIR_TOTAL}</span></span><span class="hud-lbl">配对</span></div>
-        <div class="hud-item"><span class="hud-val" id="flip-time">${timeText(flipSeconds)}</span><span class="hud-lbl">用时</span></div>
-      </div>
-      <div class="grid" id="flip-grid">
-        ${flipDeck
-          .map(
-            (
-              card,
-              index
-            ) => `<div class="card ${card.up || card.done ? 'flipped' : ''} ${card.done ? 'matched' : ''}" data-index="${index}">
-              <div class="inner">
-                <div class="face front"><span class="logo">DH</span><span class="qmark">?</span></div>
-                <div class="face back"><span class="emoji">${card.emoji}</span><span class="label">${esc(card.face)}</span></div>
-              </div>
-            </div>`
-          )
-          .join('')}
-      </div>
-      <button class="secondary" data-action="restart">🔄 重新开始</button>
-      <div class="hint">翻开两张牌，把「名字」和它的「职责」配成一对 · 共 ${PAIR_TOTAL} 对</div>
-      <div class="mask" id="flip-win" ${flipWon ? '' : 'hidden'}><div class="sheet">
-        <div class="win-title">🎉 记忆大师！</div>
-        <div class="win-text">全部配对成功：${flipMoves} 步，用时 ${timeText(flipSeconds)}</div>
-        <div class="win-rank">${flipMoves <= 20 ? '⭐ 记忆大师' : flipMoves <= 28 ? '👍 很不错' : '💪 继续加油'}</div>
-        <button class="primary" data-action="back">回到小游戏 →</button>
-        <button class="secondary" data-action="restart">🔄 再来一局</button>
-      </div></div>
-      ${App.warning()}`,
-      (root) => {
-        const paint = () => {
-          flipDeck.forEach((card, index) => {
-            const node = root.querySelector(`.card[data-index="${index}"]`);
-            node.classList.toggle('flipped', card.up || card.done);
-            node.classList.toggle('matched', card.done);
-          });
-          $('flip-moves').textContent = flipMoves;
-          $('flip-pairs').textContent = flipMatched;
-          $('flip-time').textContent = timeText(flipSeconds);
-        };
-
-        App.on(root, '[data-action]', 'click', (event, hit) => {
-          const action = hit.dataset.action;
-          if (action === 'back') return App.go('#/games');
-          if (action === 'restart') {
-            flipReset();
-            return App.render();
-          }
-        });
-
-        App.on(root, '.card', 'click', (event, hit) => {
-          if (flipBusy || flipWon) return;
-          const index = Number(hit.dataset.index);
-          const card = flipDeck[index];
-          if (card.up || card.done) return;
-
-          flipClock();
-          if (flipOpen.length === 0) {
-            card.up = true;
-            flipOpen = [index];
-            return paint();
-          }
-
-          const firstIndex = flipOpen[0];
-          const first = flipDeck[firstIndex];
-          card.up = true;
-          flipMoves += 1;
-
-          if (first.pair === card.pair) {
-            first.done = true;
-            card.done = true;
-            flipMatched += 1;
-            flipOpen = [];
-            paint();
-            if (flipMatched === PAIR_TOTAL) {
-              flipWon = true;
-              if (flipTimer) clearInterval(flipTimer);
-              flipTimer = null;
-              store().dispatch('flipResult', { moves: flipMoves, seconds: flipSeconds });
-              $('flip-win').hidden = false;
-              $('flip-win').querySelector('.win-text').textContent =
-                `全部配对成功：${flipMoves} 步，用时 ${timeText(flipSeconds)}`;
+          App.on(root, '[data-action]', 'click', (event, hit) => {
+            const action = hit.dataset.action;
+            if (action === 'back') return App.go('#/games');
+            if (action === 'restart') {
+              flipReset();
+              return App.render();
             }
-            return;
-          }
-
-          flipBusy = true;
-          paint();
-          App.after(700, () => {
-            first.up = false;
-            card.up = false;
-            flipOpen = [];
-            flipBusy = false;
-            paint();
           });
-        });
-      }
-    );
-  });
+
+          App.on(root, '.card', 'click', (event, hit) => {
+            if (flipBusy || flipWon) return;
+            const index = Number(hit.dataset.index);
+            const card = flipDeck[index];
+            if (card.done || flipOpen.includes(index)) return;
+
+            flipClock();
+            if (flipOpen.length === 0) {
+              flipOpen = [index];
+              return paint();
+            }
+
+            const firstIndex = flipOpen[0];
+            const first = flipDeck[firstIndex];
+            flipMoves += 1;
+            if (first.pair === card.pair) {
+              first.done = true;
+              card.done = true;
+              flipMatched += 1;
+              flipOpen = [];
+              paint();
+              if (flipMatched === FLIP_PAIRS) {
+                flipWon = true;
+                if (flipTimer) clearInterval(flipTimer);
+                flipTimer = null;
+                store().dispatch('flipResult', { moves: flipMoves, seconds: flipSeconds });
+                $('flip-win').hidden = false;
+                $('flip-win').querySelector('.win-text').textContent =
+                  `用时 ${flipTimeText(flipSeconds)}，共 ${flipMoves} 步`;
+              }
+              return;
+            }
+
+            card.bad = true;
+            first.bad = true;
+            flipOpen = [];
+            flipBusy = true;
+            paint();
+            App.after(420, () => {
+              card.bad = false;
+              first.bad = false;
+              flipBusy = false;
+              paint();
+            });
+          });
+        }
+      );
+    },
+    'flip'
+  );
 
   /* ==================== 能量三消 ==================== */
   const SIZE = content.match3.size;
@@ -641,112 +747,6 @@
     );
   });
 
-  /* ==================== 复现异常（实验台） ==================== */
-  const reproGame = content.reproGame;
-  let reproHold = 0;
-  let reproTimer = null;
-
-  App.register('#/repro', () => {
-    const s = store().read();
-    const done = s.games.repro.done;
-    App.mount(
-      `
-      ${App.topbar('LAB 01 / 复现异常', '<button class="text-button" data-action="back">返回闯关</button>')}
-      <div class="npc">
-        <div class="npc-head">${reproGame.npc.avatar}</div>
-        <div class="npc-main">
-          <span class="npc-name">${esc(reproGame.npc.name)} · ${esc(reproGame.npc.role)}</span>
-          <span class="npc-text">${esc(reproGame.brief)}</span>
-        </div>
-      </div>
-      <div class="hud">
-        <div class="hud-item"><span class="hud-val" id="repro-load">60%</span><span class="hud-lbl">当前负载</span></div>
-        <div class="hud-item"><span class="hud-val" id="repro-power">已通电</span><span class="hud-lbl">实验台</span></div>
-        <div class="hud-item"><span class="hud-val" id="repro-hold">0<span class="hud-sub">/${reproGame.holdSeconds} 秒</span></span><span class="hud-lbl">高负载保持</span></div>
-      </div>
-      <div class="meter component-host">
-        <div class="instrument">
-          <div class="header"><span>实时实验台</span><span class="status" id="repro-status">● 通电中</span></div>
-          <div class="readout"><span class="digits" id="repro-digits">1380</span><span> W</span><span class="mode">观察模式</span></div>
-          <canvas class="wave" id="repro-wave"></canvas>
-          <div class="caption">拖动负载滑杆，观察功率与波形响应</div>
-          <input type="range" id="repro-slider" min="20" max="100" step="1" value="60" aria-label="演示负载" />
-          <div class="header"><span id="repro-label">演示负载 60%</span><button data-action="toggle">断电 ⏻</button></div>
-          <div class="note">波形与功率为交互演示；下方精度题使用独立固定数据。</div>
-        </div>
-      </div>
-      <div class="feedback" id="repro-feedback">${done ? esc(reproGame.success) : esc(reproGame.brief)}</div>
-      <div class="hint">目标：通电后把负载推到 ${reproGame.targetMin}% 以上，并保持 ${reproGame.holdSeconds} 秒</div>
-      ${
-        done
-          ? `<div class="mask"><div class="sheet">
-              <div class="win-title">✅ 偏差复现成功</div>
-              <div class="win-text">${esc(reproGame.success)}</div>
-              <div class="win-value">本次文化印记 · ${esc(reproGame.value)}</div>
-              <button class="primary" data-action="back">回到小游戏 →</button>
-            </div></div>`
-          : ''
-      }
-      ${App.warning()}`,
-      (root) => {
-        const meter = App.meter({
-          canvas: root.querySelector('#repro-wave'),
-          calibrated: () => false,
-          onChange: ({ load, running, power }) => {
-            root.querySelector('#repro-load').textContent = `${load}%`;
-            root.querySelector('#repro-power').textContent = running ? '已通电' : '已断电';
-            root.querySelector('#repro-status').textContent = running ? '● 通电中' : '○ 已断电';
-            root.querySelector('#repro-digits').textContent = power;
-            root.querySelector('#repro-label').textContent = `演示负载 ${load}%`;
-            root.querySelector('[data-action="toggle"]').textContent = running
-              ? '断电 ⏻'
-              : '通电 ⏻';
-            const feedback = root.querySelector('#repro-feedback');
-            if (store().read().games.repro.done) return;
-            feedback.textContent = !running
-              ? reproGame.needPower
-              : load >= reproGame.targetMin
-                ? '负载到了，稳住别动'
-                : reproGame.idle;
-
-            const reached = running && load >= reproGame.targetMin;
-            if (reached && !reproTimer) {
-              reproTimer = App.every(1000, () => {
-                reproHold += 1;
-                root.querySelector('#repro-hold').innerHTML =
-                  `${reproHold}<span class="hud-sub">/${reproGame.holdSeconds} 秒</span>`;
-                if (reproHold >= reproGame.holdSeconds) {
-                  clearInterval(reproTimer);
-                  reproTimer = null;
-                  store().dispatch('reproResult', { load: meter.load });
-                  feedback.textContent = reproGame.success;
-                  feedback.classList.add('good');
-                  App.render();
-                }
-              });
-            } else if (!reached && reproTimer) {
-              clearInterval(reproTimer);
-              reproTimer = null;
-              reproHold = 0;
-              root.querySelector('#repro-hold').innerHTML =
-                `0<span class="hud-sub">/${reproGame.holdSeconds} 秒</span>`;
-            }
-          }
-        });
-
-        root.querySelector('#repro-slider').addEventListener('input', (event) => {
-          meter.setLoad(event.target.value);
-        });
-        App.on(root, '[data-action]', 'click', (event, hit) => {
-          const action = hit.dataset.action;
-          if (action === 'back') return App.go('#/games');
-          if (action === 'toggle') meter.toggle();
-        });
-        meter.emit();
-      }
-    );
-  });
-
   /* ==================== 通关结算 ==================== */
   App.register(
     '#/final',
@@ -781,7 +781,6 @@
             <div class="detail-row"><span>认证配对</span><span>${board.cert.matched} / ${board.cert.total} 个市场</span></div>
             <div class="detail-row"><span>方案组卡</span><span>${board.solution.perfect ? '满分组通过' : '已通过'}</span></div>
             <div class="detail-row"><span>模块配对</span><span>${board.flip.moves} 步 / ${board.flip.seconds} 秒</span></div>
-            <div class="detail-row"><span>复现异常</span><span>${board.repro.load}% 负载</span></div>
             <div class="detail-row"><span>知识答题</span><span>${board.quiz.correct} / ${board.quiz.total} 题正确</span></div>
           </div>
           <div class="grade" style="background:${grade.color}">GRADE ${grade.code}</div>

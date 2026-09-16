@@ -33,13 +33,6 @@ const GAMES = [
     icon: '📝',
     name: '知识答题',
     hint: '十题一百分，答完给解释'
-  },
-  {
-    id: 'repro',
-    page: '/pages/repro/repro',
-    icon: '🎚️',
-    name: '复现异常',
-    hint: '通电后把负载推到 85% 以上并稳住'
   }
 ];
 
@@ -54,7 +47,6 @@ function scoreText(id, games) {
   if (id === 'flip') return games.flip.done ? `${games.flip.moves} 步` : '';
   if (id === 'crush') return games.crush.done ? `${games.crush.score} 分` : '';
   if (id === 'quiz') return games.quiz.done ? `${games.quiz.score} 分` : '';
-  if (id === 'repro') return games.repro.done ? `${games.repro.load}%` : '';
   return '';
 }
 
@@ -86,7 +78,6 @@ Page({
     if (id === 'flip') return s.games.flip.done;
     if (id === 'crush') return s.games.crush.done;
     if (id === 'quiz') return s.games.quiz.done;
-    if (id === 'repro') return s.games.repro.done;
     return false;
   },
   open(e) {

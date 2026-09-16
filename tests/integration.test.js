@@ -79,7 +79,6 @@ function finishEverything(store) {
     store.dispatch('checkin', { questId: quest.id, choice: quest.answer });
   store.dispatch('flipResult', { moves: 16, seconds: 60 });
   store.dispatch('crushResult', { score: 320 });
-  store.dispatch('reproResult', { load: c.reproGame.targetMin });
   for (let step = 0; step < c.hopGame.tiles.length; step += 1) {
     const tile = store.read().games.hop.tile;
     store.dispatch('hopAnswer', { index: tile, choice: c.hopGame.tiles[tile].answer });
@@ -524,108 +523,4 @@ test('方案组卡：预算限制、必需项校验与满分组反馈', () => {
   assert.equal(store.read().games.solution.picks.length, c.solutionGame.quota);
   solution.finish();
   assert.equal(routes.at(-1), '/pages/quest/quest');
-});
-
-test('复现异常：断电与低负载不计数，推到阈值并稳住才通关', async () => {
-  const { store, routes } = setup();
-  const repro = page('repro');
-  repro.onShow();
-  assert.equal(repro.data.done, false);
-
-  // 没通电
-  repro.onLoadChange({ detail: { load: 40, running: false } });
-  assert.match(repro.data.message, /先点「通电」/);
-  assert.equal(repro.timer, undefined);
-
-  // 通电但负载不够
-  repro.onLoadChange({ detail: { load: 40, running: true } });
-  assert.match(repro.data.message, /继续往上推滑杆/);
-  assert.equal(repro.timer, undefined);
-  assert.equal(store.read().games.repro.done, false);
-
-  // 推到阈值：开始计时
-  repro.onLoadChange({ detail: { load: 92, running: true } });
-  assert.ok(repro.timer, '达到阈值后应当开始计时');
-  await sleep(1200);
-  assert.ok(repro.data.hold >= 1, '保持秒数应当在累加');
-
-  // 负载掉下来会清零
-  repro.onLoadChange({ detail: { load: 30, running: true } });
-  assert.equal(repro.data.hold, 0);
-  assert.equal(repro.timer, null);
-
-  // 再推上去并让计时走完
-  repro.onLoadChange({ detail: { load: 90, running: true } });
-  repro.succeed();
-  assert.equal(repro.data.done, true);
-  assert.equal(store.read().games.repro.done, true);
-  assert.equal(store.read().games.repro.load, 90);
-
-  repro.finish();
-  assert.equal(routes.at(-1), '/pages/quest/quest');
-  repro.onUnload();
-});
-
-test('小游戏区：企业文化模块没完成时锁定，完成后可以进入跳格子', () => {
-  const { store, routes } = setup();
-  const games = page('games');
-  games.onShow();
-  assert.equal(games.data.unlocked, false);
-  assert.equal(games.data.games.length, 5);
-  assert.equal(games.data.games[0].id, 'hop');
-
-  games.open({ currentTarget: { dataset: { id: 'hop' } } });
-  assert.match(games.data.feedback, /先完成企业文化模块/);
-  assert.equal(routes.length, 0);
-  games.toModule();
-  assert.equal(routes.at(-1), '/pages/quest/quest');
-
-  // 把企业文化模块做满后再进来
-  const fresh = setup();
-  finishCulture(fresh.store);
-  const opened = page('games');
-  opened.onShow();
-  assert.equal(opened.data.unlocked, true);
-  opened.open({ currentTarget: { dataset: { id: 'hop' } } });
-  assert.equal(fresh.routes.at(-1), '/pages/hop/hop');
-  assert.equal(opened.data.progress.done, 0);
-});
-
-test('文化跳格子：答对前进、答错后退，走到终点写出成绩', () => {
-  const { store, routes } = setup();
-  finishCulture(store);
-  const hop = page('hop');
-  hop.onShow();
-  assert.equal(hop.data.tile, 0);
-  assert.equal(hop.data.stones.length, c.hopGame.tiles.length);
-  assert.equal(hop.data.stones[0].here, true);
-
-  // 第 1 题答对：前进一格
-  hop.pick({ currentTarget: { dataset: { index: c.hopGame.tiles[0].answer } } });
-  assert.equal(hop.data.rightAnswer, true);
-  assert.match(hop.data.feedback, /往前跳一格/);
-  hop.go();
-  assert.equal(hop.data.tile, 1);
-  assert.equal(hop.data.stones[0].passed, true);
-  assert.equal(hop.data.stones[1].here, true);
-
-  // 第 2 题答错：退回一格
-  const wrong = (c.hopGame.tiles[1].answer + 1) % 4;
-  hop.pick({ currentTarget: { dataset: { index: wrong } } });
-  assert.equal(hop.data.rightAnswer, false);
-  assert.match(hop.data.feedback, /退回一格/);
-  hop.go();
-  assert.equal(hop.data.tile, 0);
-  assert.equal(store.read().games.hop.wrong, 1);
-
-  // 一路答对走到终点
-  for (let step = 0; step < c.hopGame.tiles.length; step += 1) {
-    const tile = hop.data.tile;
-    hop.pick({ currentTarget: { dataset: { index: c.hopGame.tiles[tile].answer } } });
-    hop.go();
-  }
-  assert.equal(store.read().games.hop.done, true);
-  assert.equal(hop.data.done, true);
-  hop.finish();
-  assert.equal(routes.at(-1), '/pages/games/games');
 });

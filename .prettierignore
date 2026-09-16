@@ -1,5 +1,6 @@
 # 说明文档与小程序产物不参与格式化
 README.md
 VALIDATION.md
+发布指南.md
 node_modules/
 dist/

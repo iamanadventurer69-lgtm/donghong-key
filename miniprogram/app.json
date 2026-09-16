@@ -26,5 +26,6 @@
   "sitemapLocation": "sitemap.json",
   "usingComponents": {
     "energy-network": "/components/energy-network/energy-network"
-  }
+  },
+  "lazyCodeLoading": "requiredComponents"
 }

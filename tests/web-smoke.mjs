@@ -172,6 +172,14 @@ for (let module = 0; module < 4; module += 1) {
         afterAnswer.replace(/\s+/g, ' ').slice(-40)
       );
       check(
+        `第 ${module + 1} 个模块的「下一步」按钮不用滚动就能看到`,
+        await page.evaluate(() => {
+          const node = document.querySelector('[data-action="next-step"]');
+          const box = node.getBoundingClientRect();
+          return box.bottom <= window.innerHeight + 1 && box.y >= 0;
+        })
+      );
+      check(
         `第 ${module + 1} 个模块全部答对才打卡`,
         (await save()).checkins[['culture', 'modules', 'values', 'world'][module]] === true
       );
@@ -448,6 +456,52 @@ for (const target of HASHES) {
   check(`${target} 字号不小于 13px`, measured.最小字号 >= 13, `${measured.最小字号}px`);
   check(`${target} 无横向溢出`, measured.横向溢出 <= 0, String(measured.横向溢出));
   check(`${target} 挂对了样式作用域`, /page-[a-z]+/.test(measured.cls), measured.cls);
+  // 上中下三种滚动位置都试：每个可见按钮至少要有一个能点中的点
+  const reach = await page.evaluate(async () => {
+    const shell = document.querySelector('.app-shell');
+    // 弹窗打开时背景按钮被遮住是应该的：只检查弹窗里的按钮
+    const mask = [...shell.querySelectorAll('.mask')].find(
+      (node) => !node.hidden && getComputedStyle(node).display !== 'none'
+    );
+    const buttons = [...shell.querySelectorAll('button')]
+      .filter((node) => {
+        const style = getComputedStyle(node);
+        return (
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          node.getBoundingClientRect().height > 1
+        );
+      })
+      .filter((node) => !mask || mask.contains(node));
+    const clickable = new Set();
+    const max = shell.scrollHeight - shell.clientHeight;
+    for (const top of [0, Math.round(max / 2), max]) {
+      shell.scrollTop = top;
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      buttons.forEach((node) => {
+        const box = node.getBoundingClientRect();
+        const ys = [box.y + 4, box.y + box.height / 2, box.bottom - 4].filter(
+          (y) => y > 2 && y < window.innerHeight - 2
+        );
+        const xs = [box.x + 6, box.x + box.width / 2, box.right - 6].filter(
+          (x) => x > 2 && x < window.innerWidth - 2
+        );
+        ys.forEach((y) =>
+          xs.forEach((x) => {
+            const hit = document.elementFromPoint(x, y);
+            if (hit && (hit === node || node.contains(hit))) clickable.add(node);
+          })
+        );
+      });
+    }
+    shell.scrollTop = 0;
+    return buttons
+      .filter((node) => !clickable.has(node))
+      .map(
+        (node) => `${node.textContent.trim().replace(/\s+/g, ' ').slice(0, 14)}(${node.className})`
+      );
+  });
+  check(`${target} 每个按钮都点得到`, reach.length === 0, JSON.stringify(reach));
   // 首页自己不需要「首页」按钮；其他每一屏都要能一键回去
   if (target !== '#/home') {
     check(

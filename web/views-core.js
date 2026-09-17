@@ -276,7 +276,9 @@
       const progress = state.taskProgress(s);
       const nextTask = state.tasks(s).find((task) => !task.done);
       const percent = state.percent(s);
-      const head = App.topbar('EXPLORER ARCHIVE / 探索档案');
+      // 桌面端这一页是两列网格：顶栏只能有一个（CSS 里 .page-progress > .topline 占满两列），
+      // 每个面板都塞顶栏会把网格行撑乱、面板被压扁。
+      const head = first ? App.topbar('EXPLORER ARCHIVE / 探索档案') : '';
       const marks = state.MARKS.map((name) => {
         const value = s.marks[name] || 0;
         return `<span class="mark ${value > 0 ? 'good' : ''} ${value < 0 ? 'bad' : ''}">${name} ${value > 0 ? '+' : ''}${value}</span>`;

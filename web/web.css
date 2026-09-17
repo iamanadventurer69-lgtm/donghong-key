@@ -23,6 +23,8 @@ body {
   /* 字号放大后，极小屏上内容可能超出一屏：允许纵向滚动，别把字裁掉 */
   overflow-x: hidden;
   overflow-y: auto;
+  /* 底部留一点呼吸空间，最后那个按钮不要贴着边 */
+  padding-bottom: 22px;
 }
 
 /* 平板/小桌面：还是竖屏思路，但给一点边距 */
@@ -80,7 +82,9 @@ body {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
-    align-items: stretch;
+    /* 行高按内容来，别把面板压扁导致按钮溢出去盖住下一张卡 */
+    grid-auto-rows: min-content;
+    align-items: start;
     align-content: start;
   }
   .page-progress > .topline,
@@ -91,6 +95,7 @@ body {
     justify-content: flex-start;
     gap: 14px;
     padding: 18px;
+    min-height: 0;
     background: #fff;
     border: 1px solid #dceffa;
     border-radius: 18px;
@@ -1190,4 +1195,69 @@ input:focus-visible {
 /* 顶栏里的「首页」按钮：每屏都能一键回首页 */
 .home-button {
   white-space: nowrap;
+}
+
+/* ══════════════════════════════════════════════════════════
+   呼吸空间：学习 / 关卡 / 答题这些页的内容可能比一屏高。
+   小程序里 .sheet 是 max-height:100% + overflow:hidden（一屏一屏翻，超了就裁），
+   网页上一裁就会把最下面的「下一题 / 下一步」按钮吃掉 —— 这里改成让外层滚动，
+   并在卡片与外壳底部留白，保证最后一个按钮永远看得见、点得到。
+   ══════════════════════════════════════════════════════════ */
+.page-quest .sheet,
+.page-culture .sheet,
+.page-shift .sheet,
+.page-quiz .sheet,
+.page-hop .sheet,
+.page-flip .sheet,
+.page-cert .sheet,
+.page-solution .sheet,
+.page-final .sheet {
+  max-height: none;
+  overflow: visible;
+}
+
+/* 卡片内部松一点，别挤在一起 */
+.page-quest .sheet,
+.page-culture .sheet {
+  gap: 9px;
+  padding: 16px 15px 18px;
+}
+
+.page-quest .panel,
+.page-culture .panel {
+  padding-bottom: 12px;
+}
+
+/* 选项之间也留点缝 */
+.page-quest .option {
+  margin-bottom: 2px;
+}
+
+/* ── 矮屏（手机 360×640 这种）再收紧一点，保证最后那个按钮就在眼前 ── */
+@media (max-height: 720px) {
+  .app-shell.viewport {
+    padding-bottom: 14px;
+  }
+
+  .page-quest .sheet,
+  .page-culture .sheet {
+    gap: 6px;
+    padding: 12px 13px 14px;
+  }
+
+  /* 选项之间别留那么大缝 */
+  .page-quest .option {
+    margin: 3px 0 1px;
+  }
+
+  /* 模块提示与步骤提示在矮屏上省掉一行（内容在卡里已经说过） */
+  .page-quest .sheet-from,
+  .page-quest .step-hint {
+    display: none;
+  }
+
+  .page-shift .sheet {
+    gap: 6px;
+    padding: 12px 13px 14px;
+  }
 }

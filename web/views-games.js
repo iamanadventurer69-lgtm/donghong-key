@@ -117,27 +117,116 @@
     'games'
   );
 
-  /* ==================== 文化跳格子：按压蓄力选答案 ==================== */
+  /* ==================== 文化跳格子：跳一跳式场景 + 按压蓄力选答案 ==================== */
   const HOP = content.hopGame;
   const HOP_TOTAL = HOP.tiles.length;
   /** 指针扫过一项所需时间（毫秒）：按住越久走得越远。 */
   const HOP_STEP_MS = 240;
+  /** 等距场景：viewBox、当前平台位置、每前进一格的位移。 */
+  const BOARD = { w: 900, h: 470, base: { x: 340, y: 296 }, dx: 208, dy: -86, half: 76, thick: 52 };
 
   let hopPointer = 0;
   let hopCharging = false;
   let hopRaf = null;
   let hopStartedAt = 0;
   let hopResult = null;
+  let hopLastTile = -1; // 上一帧站着的格子，用来算出「从哪跳过来」
 
-  function hopStones(tile, done) {
-    return HOP.tiles.map((item, index) => ({
-      key: item.id,
-      label: index === HOP_TOTAL - 1 ? '终点' : String(index + 1),
-      name: item.name,
-      goal: index === HOP_TOTAL - 1,
-      passed: index < tile,
-      here: !done && index === tile
-    }));
+  /** 第 index 格相对当前格 tile 的场景坐标（当前格永远在同一个位置）。 */
+  function hopCenter(index, tile) {
+    const step = index - tile;
+    const shuffle = index % 2 === 0 ? -14 : 14; // 左右轻微错开，像跳一跳的随平台
+    return { x: BOARD.base.x + step * BOARD.dx, y: BOARD.base.y + step * BOARD.dy + shuffle };
+  }
+
+  /** 一块等距平台（顶面菱形 + 两个侧面），三种造型轮着来。 */
+  function hopPlatform(index, tile) {
+    const { x, y } = hopCenter(index, tile);
+    const half = BOARD.half;
+    const quarter = half / 2;
+    const thick = BOARD.thick;
+    const lit = index === tile;
+    const past = index < tile;
+    const topFill = lit ? '#fbfcfe' : past ? '#e7e9ec' : '#f3f5f7';
+    const sideA = lit ? '#93a9bd' : past ? '#9aa0a6' : '#a4aab1';
+    const sideB = lit ? '#b7cad9' : past ? '#bcc1c6' : '#c3c7cc';
+    const kind = index % 3;
+
+    const top = `M ${x} ${y - quarter} L ${x + half} ${y} L ${x} ${y + quarter} L ${x - half} ${y} Z`;
+    const left = `M ${x - half} ${y} L ${x} ${y + quarter} L ${x} ${y + quarter + thick} L ${x - half} ${y + thick} Z`;
+    const right = `M ${x + half} ${y} L ${x} ${y + quarter} L ${x} ${y + quarter + thick} L ${x + half} ${y + thick} Z`;
+
+    const shadow = `<ellipse cx="${x + 26}" cy="${y + quarter + thick + 10}" rx="${half * 0.95}" ry="${quarter * 0.72}" fill="#3d4a57" opacity="${lit ? 0.16 : 0.1}"/>`;
+    const number = `<text x="${x}" y="${y + 8}" text-anchor="middle" font-family="Menlo, monospace" font-size="26" font-weight="700" fill="${lit ? '#7d8b99' : '#a7aeb6'}">${index + 1}</text>`;
+
+    if (kind === 1) {
+      // 圆柱：椭圆顶 + 弧底筒身
+      const body = `M ${x - half} ${y} L ${x - half} ${y + thick} A ${half} ${quarter} 0 0 0 ${x + half} ${y + thick} L ${x + half} ${y} Z`;
+      return `${shadow}
+        <path d="${body}" fill="${sideA}"/>
+        <ellipse cx="${x}" cy="${y}" rx="${half}" ry="${quarter}" fill="${topFill}"/>
+        <ellipse cx="${x}" cy="${y}" rx="${half * 0.66}" ry="${quarter * 0.62}" fill="none" stroke="#d8dde2" stroke-width="6"/>
+        ${number}`;
+    }
+
+    if (kind === 2) {
+      // 条纹方台：侧面加两层浅色条
+      const stripes = [0.34, 0.62]
+        .map(
+          (f) =>
+            `<path d="M ${x - half} ${y + thick * f} L ${x} ${y + quarter + thick * f} L ${x + half} ${y + thick * f} L ${x} ${y + quarter + thick * f + 8} Z" fill="#ffffff" opacity="0.35"/>`
+        )
+        .join('');
+      return `${shadow}
+        <path d="${left}" fill="${sideA}"/>
+        <path d="${right}" fill="${sideB}"/>
+        ${stripes}
+        <path d="${top}" fill="${topFill}"/>
+        ${number}`;
+    }
+
+    return `${shadow}
+      <path d="${left}" fill="${sideA}"/>
+      <path d="${right}" fill="${sideB}"/>
+      <path d="${top}" fill="${topFill}"/>
+      <path d="${top}" fill="none" stroke="#e2e6ea" stroke-width="1.5"/>
+      ${number}`;
+  }
+
+  /** 棋子：圆柱身体 + 小球，站在当前平台顶面上。 */
+  function hopPawn(tile, anim) {
+    const { x, y } = hopCenter(tile, tile);
+    const from = hopLastTile >= 0 && hopLastTile !== tile ? hopCenter(hopLastTile, tile) : null;
+    const style = from
+      ? `--fx:${from.x}px;--fy:${from.y}px;--mx:${(from.x + x) / 2}px;--my:${(from.y + y) / 2 - 96}px;--tx:${x}px;--ty:${y}px;`
+      : `--tx:${x}px;--ty:${y}px;`;
+    return `<g class="pawn ${anim}" style="${style}" transform="translate(${x}, ${y})">
+      <ellipse cx="2" cy="4" rx="19" ry="7" fill="#39424d" opacity="0.18"/>
+      <path d="M -12 0 C -15 -30 -7 -41 0 -43 C 7 -41 15 -30 12 0 Z" fill="#3b3a5c"/>
+      <path d="M -12 0 C -15 -30 -7 -41 0 -43 L 0 0 Z" fill="#2f2e4a" opacity="0.55"/>
+      <circle cx="0" cy="-53" r="10" fill="#2f2e4a"/>
+      <circle cx="-3.5" cy="-56" r="3" fill="#6a6a9a" opacity="0.8"/>
+    </g>`;
+  }
+
+  /** 整块场景：地面渐变 + 平台 + 棋子。 */
+  function hopBoardSvg(tile, anim) {
+    const from = Math.max(0, tile - 1);
+    const to = Math.min(HOP_TOTAL - 1, tile + 3);
+    const platforms = [];
+    for (let index = from; index <= to; index += 1) platforms.push(hopPlatform(index, tile));
+    return `<svg class="hop-board" viewBox="0 0 ${BOARD.w} ${BOARD.h}" preserveAspectRatio="xMidYMid slice" aria-label="跳格子场景">
+      <defs>
+        <linearGradient id="hop-ground" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#dde1e6"/>
+          <stop offset="55%" stop-color="#eceef1"/>
+          <stop offset="100%" stop-color="#f5f6f8"/>
+        </linearGradient>
+      </defs>
+      <rect width="${BOARD.w}" height="${BOARD.h}" fill="url(#hop-ground)"/>
+      ${platforms.join('')}
+      ${hopPawn(tile, anim)}
+    </svg>`;
   }
 
   /** 三角波：0 → n-1 → 0 往返，按压时间变成指针位置。 */
@@ -152,12 +241,18 @@
   App.register(
     '#/hop',
     () => {
-      if (App.prevHash !== '#/hop') hopResult = null;
       const s = store().read();
       const hop = s.games.hop;
       const tile = Math.min(hop.tile, HOP_TOTAL - 1);
       const current = HOP.tiles[tile];
       const done = hop.done;
+      // 刚进入本页：把棋子直接放在当前格，不做跳跃动画
+      const entering = App.prevHash !== '#/hop';
+      if (entering) {
+        hopResult = null;
+        hopLastTile = tile;
+      }
+      const anim = entering ? '' : hopLastTile === tile ? 'bump' : 'jump';
 
       const rows = current.options
         .map((option, index) => {
@@ -170,58 +265,47 @@
 
       App.mount(
         `
-        ${App.topbar('CULTURE HOP / 文化跳格子', '<button class="text-button" data-action="back">返回闯关</button>')}
-        <div class="hud">
-          <div class="hud-item"><span class="hud-val">${hop.tile}<span class="hud-sub">/${HOP_TOTAL}</span></span><span class="hud-lbl">已跳过</span></div>
-          <div class="hud-item"><span class="hud-val">${hop.right}</span><span class="hud-lbl">答对</span></div>
-          <div class="hud-item"><span class="hud-val">${hop.wrong}</span><span class="hud-lbl">答错</span></div>
-        </div>
-        <div class="stones">${hopStones(hop.tile, done)
-          .map(
-            (
-              stone
-            ) => `<div class="stone ${stone.passed ? 'passed' : ''} ${stone.here ? 'here' : ''} ${stone.goal ? 'goal' : ''}">
-              <span class="stone-label">${stone.label}</span>
-              <span class="stone-name">${esc(stone.name)}</span>
-              ${stone.here ? '<span class="hopper">🦘</span>' : ''}
-            </div>`
-          )
-          .join('')}</div>
-        <div class="hop-problem">
-          <div class="hop-tile-head">
-            <span class="hop-tile-index">第 ${tile + 1} 格</span>
-            <span class="hop-tile-name">${esc(current.name)}</span>
+        <div class="hop-stage">
+          ${hopBoardSvg(tile, anim)}
+          <div class="hop-score">${hop.tile}<small>/ ${HOP_TOTAL} 格</small></div>
+          <div class="topline">
+            <button class="text-button" data-action="back">返回闯关</button>
           </div>
-          <div class="hop-point">${esc(current.point)}</div>
-          <div class="hop-question">${esc(current.question)}</div>
+          <div class="hop-problem">
+            <div class="hop-tile-head">
+              <span class="hop-tile-index">第 ${tile + 1} 格 · 答对 ${hop.right} · 答错 ${hop.wrong}</span>
+            </div>
+            <div class="hop-point">${esc(current.point)}</div>
+            <div class="hop-question">${esc(current.question)}</div>
+          </div>
+          ${
+            hopResult
+              ? `<div class="hop-feedback ${hopResult.right ? 'good' : 'bad'}">${esc(hopResult.text)}</div>
+                 <div class="hop-actions">
+                   ${
+                     hopResult.right
+                       ? `<button class="primary" data-action="go">${done ? '走到终点了，看我表现 →' : '跳上下一格 →'}</button>`
+                       : '<button class="primary" data-action="retry">重新选一次</button>'
+                   }
+                 </div>`
+              : `<div class="hop-dock" id="hop-dock">
+                   <div class="hop-pointer" id="hop-pointer"></div>
+                   ${rows}
+                 </div>
+                 <div class="hop-press-hint">按住工作栏蓄力 · 指针上下移动 · 松手即选中</div>`
+          }
+          ${
+            done && !hopResult
+              ? `<div class="mask"><div class="sheet">
+                  <div class="win-title">🏁 你走到了终点</div>
+                  <div class="win-text">${esc(HOP.finish)}</div>
+                  <div class="win-stats">共答对 ${hop.right} 题，答错 ${hop.wrong} 次</div>
+                  <div class="win-rank">${hop.wrong <= 2 ? '⭐ 几乎没失手' : hop.wrong <= 6 ? '👍 稳稳走完了全程' : '💪 走完了，回头再看错过的格子'}</div>
+                  <button class="primary" data-action="back">回到小游戏 →</button>
+                </div></div>`
+              : ''
+          }
         </div>
-        ${
-          hopResult
-            ? `<div class="hop-feedback ${hopResult.right ? 'good' : 'bad'}">${esc(hopResult.text)}</div>
-               <div class="hop-actions">
-                 ${
-                   hopResult.right
-                     ? `<button class="primary" data-action="go">${done ? '走到终点了，看我表现 →' : '继续下一格 →'}</button>`
-                     : '<button class="primary" data-action="retry">重新选一次</button>'
-                 }
-               </div>`
-            : `<div class="hop-dock" id="hop-dock">
-                 <div class="hop-pointer" id="hop-pointer"></div>
-                 ${rows}
-               </div>
-               <div class="hop-press-hint">按住工作栏蓄力 · 指针上下移动 · 松手即选中</div>`
-        }
-        ${
-          done && !hopResult
-            ? `<div class="mask"><div class="sheet">
-                <div class="win-title">🏁 你走到了终点</div>
-                <div class="win-text">${esc(HOP.finish)}</div>
-                <div class="win-stats">共答对 ${hop.right} 题，答错 ${hop.wrong} 次</div>
-                <div class="win-rank">${hop.wrong <= 2 ? '⭐ 几乎没失手' : hop.wrong <= 6 ? '👍 稳稳走完了全程' : '💪 走完了，回头再看错过的格子'}</div>
-                <button class="primary" data-action="back">回到小游戏 →</button>
-              </div></div>`
-            : ''
-        }
         ${App.warning()}`,
         (root) => {
           const dock = root.querySelector('#hop-dock');
@@ -266,6 +350,7 @@
             stopCharging();
             const index = Math.max(0, Math.min(current.options.length - 1, Math.round(hopPointer)));
             const right = index === current.answer;
+            hopLastTile = hop.tile;
             store().dispatch('hopAnswer', { index: hop.tile, choice: index });
             hopResult = right
               ? { right: true, index, text: `${HOP.forward} ${current.explain}` }
@@ -305,10 +390,13 @@
             }
             if (action === 'retry') {
               hopResult = null;
+              hopLastTile = Math.min(store().read().games.hop.tile, HOP_TOTAL - 1);
               return App.render();
             }
             if (action === 'go') {
               hopResult = null;
+              // 已经跳过来了，重置起点，避免再播一次跳跃动画
+              hopLastTile = Math.min(store().read().games.hop.tile, HOP_TOTAL - 1);
               if (store().read().games.hop.done) return App.go('#/games');
               return App.render();
             }

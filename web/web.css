@@ -659,6 +659,463 @@ button > div {
   }
 }
 
+/* ══════════ 文化跳格子：跳一跳式场景（等距平台 + 棋子 + 按压选答案） ══════════ */
+.page-hop.viewport {
+  background: linear-gradient(180deg, #dfe2e7 0%, #eceef1 55%, #f4f5f7 100%);
+  padding: 0;
+  gap: 0;
+}
+
+.hop-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.hop-board {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* 左上角的大数字（跳一跳的分数位）= 当前走到第几格 */
+.hop-score {
+  position: absolute;
+  left: 22px;
+  top: 16px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font:
+    700 46px/1 Menlo,
+    monospace;
+  color: #3f4650;
+  letter-spacing: -1px;
+  text-shadow: 0 2px 10px #ffffffcc;
+}
+
+.hop-score small {
+  font-size: 14px;
+  font-weight: 600;
+  color: #7b838d;
+  letter-spacing: 0;
+}
+
+.hop-stage .topline {
+  position: absolute;
+  right: 14px;
+  top: 12px;
+  left: auto;
+}
+
+/* 棋子：单独一层，用 CSS 动画做抛物线跳跃 */
+.hop-pawn {
+  position: absolute;
+  width: 44px;
+  height: 66px;
+  margin: -46px 0 0 -22px;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.hop-pawn.jump {
+  animation: hop-arc 0.46s cubic-bezier(0.4, 0.1, 0.5, 1);
+}
+
+.hop-pawn.bump {
+  animation: hop-bump 0.42s ease-out;
+}
+
+@keyframes hop-arc {
+  0% {
+    transform: translate(var(--fx), var(--fy)) scale(0.94);
+  }
+  45% {
+    transform: translate(var(--mx), var(--my)) scale(1.06);
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(1);
+  }
+}
+
+@keyframes hop-bump {
+  0%,
+  100% {
+    transform: translate(var(--tx), var(--ty));
+  }
+  35% {
+    transform: translate(var(--tx), calc(var(--ty) - 14px));
+  }
+  70% {
+    transform: translate(var(--tx), var(--ty));
+  }
+}
+
+/* 问题区：浮在场景上方 */
+.hop-problem {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 76px;
+  padding: 12px 14px;
+  background: #ffffffee;
+  border: 1px solid #e2e6ea;
+  border-radius: 16px;
+  box-shadow: 0 10px 26px #5b6b7a1f;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  backdrop-filter: blur(3px);
+}
+
+/* 工作栏：底部按压选择 */
+.hop-dock {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  min-height: 0;
+  height: 216px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: #fffffff2;
+  border: 1px solid #dbe2e8;
+  border-radius: 18px;
+  box-shadow: 0 14px 34px #46586a26;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+  overflow: hidden;
+  backdrop-filter: blur(4px);
+}
+
+.hop-dock.charging {
+  border-color: #6b7d99;
+  box-shadow:
+    0 0 0 3px #6b7d9922,
+    0 14px 34px #46586a26;
+}
+
+.hop-pointer {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #3b3a5c, #55567f);
+  box-shadow: 0 8px 18px #3b3a5c44;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.hop-row {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  color: #3d4552;
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+
+.hop-row .letter {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #eceff3;
+  color: #5a6472;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 22px;
+}
+
+.hop-dock.charging .hop-row.focus {
+  color: #fff;
+}
+
+.hop-dock.charging .hop-row.focus .letter {
+  background: #ffffffdd;
+  color: #3b3a5c;
+}
+
+.hop-row.right {
+  background: #e6f6ee;
+  color: #146b48;
+}
+
+.hop-row.wrong {
+  background: #fdecea;
+  color: #a4452f;
+}
+
+.hop-press-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 6px;
+  text-align: center;
+  font-size: 11px;
+  color: #7d8792;
+}
+
+.hop-feedback {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 92px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  box-shadow: 0 10px 24px #46586a1f;
+}
+
+.hop-feedback.good {
+  background: #eaf9f2f2;
+  color: #206a4c;
+  border-left: 3px solid #1a8f5f;
+}
+
+.hop-feedback.bad {
+  background: #fdeceaf2;
+  color: #8f4531;
+  border-left: 3px solid #c2543f;
+}
+
+.hop-actions {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  display: flex;
+  gap: 8px;
+}
+
+.hop-actions .primary,
+.hop-actions .secondary {
+  flex: 1;
+}
+
+.hop-feedback + .hop-actions {
+  bottom: 14px;
+}
+
+/* 宽屏：场景居中限宽，工作栏与问题区跟着居中 */
+@media (min-width: 900px) {
+  .page-hop {
+    max-width: 1080px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .hop-dock,
+  .hop-actions,
+  .hop-feedback {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(560px, calc(100% - 28px));
+  }
+  .hop-problem {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(640px, calc(100% - 32px));
+  }
+  .hop-dock {
+    height: 236px;
+  }
+}
+
+/* ══════════ 首页：铺满宽度的落地页（hero + 三步 + 方向） ══════════ */
+.home-hero,
+.home-flow,
+.home-about {
+  flex-shrink: 0;
+}
+
+.home-hero {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 1fr;
+  gap: 18px;
+  align-items: center;
+  padding: 18px 20px;
+  background: #fff;
+  border: 1px solid #dceffa;
+  border-radius: 20px;
+  box-shadow: 0 8px 26px #77bfe60f;
+}
+
+.home-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.home-canvas {
+  min-height: 190px;
+  height: 100%;
+  border-radius: 14px;
+  background: linear-gradient(160deg, #fbfeff, #eef8ff);
+  border: 1px solid #e3f2fb;
+}
+
+.home-mission {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+}
+
+.home-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home-flow-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #123f60;
+}
+
+.flow-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.flow-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1.5px solid #dceffa;
+  border-radius: 18px;
+  text-align: left;
+  transition:
+    transform 0.18s,
+    box-shadow 0.18s,
+    border-color 0.18s;
+}
+
+.flow-card:hover {
+  transform: translateY(-2px);
+  border-color: #7cc4e8;
+  box-shadow: 0 10px 24px #77bfe61f;
+}
+
+.flow-card.done {
+  background: #f6fcff;
+  border-color: #8fd0f0;
+}
+
+.flow-card.locked {
+  background: #f8fbfe;
+  border-style: dashed;
+}
+
+.flow-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.flow-number {
+  font:
+    800 20px Menlo,
+    monospace;
+  color: #2aa3dd;
+}
+
+.flow-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #123f60;
+}
+
+.flow-head .tag {
+  margin-left: auto;
+}
+
+.flow-line {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #476b82;
+}
+
+.flow-cta {
+  margin-top: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1c7fb4;
+}
+
+.flow-card.locked .flow-cta {
+  color: #8fa9ba;
+}
+
+.flow-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: #a9d3ea;
+}
+
+.home-about {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.home-about .card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.home-about .values {
+  justify-content: flex-start;
+  font-size: 16px;
+}
+
+/* 窄屏：纵向堆叠，箭头转向 */
+@media (max-width: 899px) {
+  .home-hero,
+  .home-about {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .home-canvas {
+    min-height: 150px;
+  }
+  .flow-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .flow-arrow {
+    transform: rotate(90deg);
+    font-size: 18px;
+  }
+  .home-flow-title {
+    text-align: center;
+  }
+}
+
 /* ══════════ 文化跳格子：按压蓄力选择（跳一跳式） ══════════ */
 .hop-problem {
   flex-shrink: 0;

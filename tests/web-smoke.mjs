@@ -388,7 +388,48 @@ check('模块配对完成', (await save()).games.flip.done === true);
 
 await go('#/quiz');
 const bank = await page.evaluate(() => window.DHKApp.content.quizBank.map((q) => q.ans));
-for (let i = 0; i < bank.length; i += 1) {
+const quizLook = () =>
+  page.evaluate(() => {
+    const options = [...document.querySelectorAll('#app .q-opts .option')];
+    return {
+      题号: (document.querySelector('#app .q-num') || {}).textContent || '',
+      选项数: options.length,
+      高亮了答案: options.some((node) => node.classList.contains('right')),
+      有解释: Boolean(document.querySelector('#app .explain')),
+      有下一题: Boolean(document.querySelector('#app [data-action="next-question"]'))
+    };
+  });
+const beforeAnswer = await quizLook();
+check(
+  '答题前不显示答案（没有高亮、没有解释）',
+  beforeAnswer.选项数 === 4 &&
+    !beforeAnswer.高亮了答案 &&
+    !beforeAnswer.有解释 &&
+    !beforeAnswer.有下一题,
+  JSON.stringify(beforeAnswer)
+);
+await tap(`[data-action="answer"][data-index="${bank[0]}"]`);
+await wait(160);
+const afterAnswer = await quizLook();
+check(
+  '点完才高亮答案并给解释',
+  afterAnswer.高亮了答案 && afterAnswer.有解释 && afterAnswer.有下一题,
+  JSON.stringify(afterAnswer)
+);
+// 关键回归：答完不点「下一题」就离开，再进来必须是干净的下一题
+await go('#/home');
+await wait(150);
+await go('#/quiz');
+const reentered = await quizLook();
+check(
+  '离开再进答题页不会预先显示答案',
+  reentered.题号.includes('第 2 / 10 题') &&
+    !reentered.高亮了答案 &&
+    !reentered.有解释 &&
+    reentered.选项数 === 4,
+  JSON.stringify(reentered)
+);
+for (let i = 1; i < bank.length; i += 1) {
   await tap(`[data-action="answer"][data-index="${bank[i]}"]`);
   await wait(80);
   if (i < bank.length - 1) await tap('[data-action="next-question"]');

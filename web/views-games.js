@@ -645,13 +645,25 @@
   const BANK = content.quizBank;
   let quizChosen = -1;
   let quizAnswered = false;
+  /** 「已选的答案属于哪一题」。离开页面/换题后必须对不上，否则会把上一题的答案标在新题上。 */
+  let quizAt = -1;
 
   App.register('#/quiz', () => {
     const s = store().read();
     const results = s.games.quiz.results;
     const finished = results.length >= BANK.length;
-    const index = Math.min(results.length, BANK.length - 1);
+    // 先清状态再判断：重新进入本页、或者已选的答案不属于「刚答完那一题」，都当成没答过。
+    // （顺序很重要：先算 answeredNow 再清，就会留下 quizAt = -1 去索引题目）
+    if (App.prevHash !== '#/quiz' || (quizAnswered && quizAt !== results.length - 1)) {
+      quizAnswered = false;
+      quizChosen = -1;
+      quizAt = -1;
+    }
+    // 刚答完的那一题：还停留在本页就继续显示解释；否则显示下一道没答的题
+    const answeredNow = quizAnswered && quizAt === results.length - 1;
+    const index = answeredNow ? quizAt : Math.min(results.length, BANK.length - 1);
     const question = BANK[index];
+    const showResult = answeredNow;
     const letters = ['A', 'B', 'C', 'D'];
 
     const dots = BANK.map((_, i) => {
@@ -698,7 +710,7 @@
               <div class="q-opts">
                 ${question.opts
                   .map((option, i) => {
-                    const cls = quizAnswered
+                    const cls = showResult
                       ? `${i === question.ans ? 'right' : ''} ${i === quizChosen && quizChosen !== question.ans ? 'wrong' : ''}`
                       : '';
                     return `<button class="option ${cls}" data-action="answer" data-index="${i}"><span class="letter">${letters[i]}</span><span>${esc(option)}</span></button>`;
@@ -706,13 +718,13 @@
                   .join('')}
               </div>
               ${
-                quizAnswered
+                showResult
                   ? `<div class="explain ${quizChosen === question.ans ? 'ok' : 'no'}">${esc(question.explain)}</div>`
                   : ''
               }
             </div>
             ${
-              quizAnswered
+              showResult
                 ? `<button class="primary" data-action="next-question">${index + 1 === BANK.length ? '查看成绩 →' : '下一题 →'}</button>`
                 : '<div class="hint">答完每题都会给出解释，答错也会说明原因</div>'
             }`
@@ -726,18 +738,21 @@
             store().dispatch('quizReset');
             quizChosen = -1;
             quizAnswered = false;
+            quizAt = -1;
             return App.render();
           }
           if (action === 'answer') {
             if (quizAnswered) return;
             quizChosen = Number(hit.dataset.index);
             quizAnswered = true;
+            quizAt = index;
             store().dispatch('quizAnswer', { index, choice: quizChosen });
             return App.render();
           }
           if (action === 'next-question') {
             quizChosen = -1;
             quizAnswered = false;
+            quizAt = -1;
             App.render();
           }
         });

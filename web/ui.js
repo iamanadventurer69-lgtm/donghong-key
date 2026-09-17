@@ -190,9 +190,39 @@ window.DHKApp = window.DHKApp || {};
     </div>`;
   };
 
-  /** 存档失败提示。 */
+  /**
+   * 清空记录的两段式确认：第一次点把按钮改成「确定清空」，6 秒内再点一次才真的清空。
+   * 不用 window.confirm —— 浏览器弹窗在演示机/内嵌环境里常被拦或很难看。
+   */
+  App.askReset = function askReset(hit) {
+    const label = hit.dataset.label || hit.textContent.trim();
+    if (hit.dataset.armed !== '1') {
+      hit.dataset.armed = '1';
+      hit.textContent = '确定清空？再点一次（6 秒内）';
+      hit.classList.add('reset-armed');
+      App.after(6000, () => {
+        if (!hit.isConnected) return;
+        delete hit.dataset.armed;
+        hit.textContent = label;
+        hit.classList.remove('reset-armed');
+      });
+      return;
+    }
+    DHKStore.reset();
+    App.flash('记录已清空，从头开始吧。');
+    App.go('#/home');
+  };
+
+  /** 一次性提示：下一次渲染时显示一次（用于「记录已清空」这类反馈）。 */
+  let flashText = '';
+  App.flash = function flash(text) {
+    flashText = text;
+  };
+
+  /** 存档失败提示 / 一次性提示。 */
   App.warning = function warning() {
-    const text = DHKStore.warning();
+    const text = DHKStore.warning() || flashText;
+    flashText = '';
     return text ? `<div class="save-warning">${App.esc(text)}</div>` : '';
   };
 })(window.DHKApp);

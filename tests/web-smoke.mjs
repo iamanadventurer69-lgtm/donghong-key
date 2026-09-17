@@ -364,6 +364,37 @@ check(
 check('桌面无横向溢出', layout.横向溢出 <= 0, JSON.stringify(layout));
 await desktop.close();
 
+/* 11. 重新开始：两段式确认，清空后回到首页（放在最后，因为它会清档） */
+await go('#/home');
+check('首页有「重新开始」入口', (await text()).includes('重新开始（清空记录）'));
+const beforeReset = (await save()).games.hop.tile;
+await tap('#app [data-action="reset"]');
+await wait(150);
+check('第一次点只是改成确认文案', (await text()).includes('确定清空？再点一次'));
+check('第一次点不会清档', (await save()).games.hop.tile === beforeReset);
+await tap('#app [data-action="reset"]');
+await wait(400);
+const afterReset = await save();
+const fresh = await page.evaluate(() =>
+  window.DHKApp.state.normalize(window.DHKApp.state.initial())
+);
+const strip = (state) => {
+  const { updatedAt, ...rest } = state;
+  return rest;
+};
+check(
+  '清空后记录与全新存档一致',
+  JSON.stringify(strip(afterReset)) === JSON.stringify(strip(fresh)),
+  JSON.stringify({ 现在: strip(afterReset), 全新: strip(fresh) }).slice(0, 400)
+);
+check(
+  '清空后回到首页并给出提示',
+  (await hash()) === '#/home' && (await text()).includes('记录已清空')
+);
+
+await go('#/progress');
+check('档案页也能重新开始', (await text()).includes('重新开始（清空记录）'));
+
 await browser.close();
 server.close();
 console.log(

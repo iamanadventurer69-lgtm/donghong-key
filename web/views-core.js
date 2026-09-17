@@ -164,7 +164,7 @@
             ])}
             <div class="flow-arrow">→</div>
             ${flowCard(3, 'games', '03', '闯关小游戏', entries.games, [
-              '文化跳格子 · 模块配对 · 能量三消 · 知识答题',
+              '文化跳格子 · 模块配对 · 知识答题',
               `${entries.games.tag}`,
               '成绩计入通关结算的 GRADE 评级'
             ])}
@@ -189,6 +189,7 @@
             <div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div>
             <div class="small muted">${esc(content.company)}</div>
             <button class="secondary" data-action="progress">查看探索档案</button>
+            <button class="text-button reset-link" data-action="reset" data-label="重新开始（清空记录）">重新开始（清空记录）</button>
           </div>
         </section>`,
         (root) => {
@@ -207,6 +208,7 @@
             }
             if (action === 'games') return App.go('#/games');
             if (action === 'progress') return App.go('#/progress');
+            if (action === 'reset') return App.askReset(hit);
           });
         }
       );
@@ -325,7 +327,10 @@
               <div class="row small"><span>客户信任</span><span>${s.trust} / 100</span></div>
             </div>
             <div class="card">进度只保存在当前浏览器。清除缓存或换设备后无法恢复。<div class="line"></div><div class="muted">本原型不采集员工身份信息。</div></div>
-            <button class="secondary" data-action="reset">清除本机存档，重新探索</button>
+            <button class="secondary" data-action="reset" data-label="清除本机存档，重新探索">
+              清除本机存档，重新探索
+            </button>
+            <div class="small muted reset-hint">点了会再问一次「确定清空」，确认后从头开始。</div>
             <button class="primary" data-action="home">返回首页</button>
           </div>`;
       }
@@ -338,6 +343,14 @@
             <div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div>
             <div class="small muted">最近保存：${esc(s.updatedAt ? new Date(s.updatedAt).toLocaleString() : '还未开始')}</div>
           </div>
+          ${
+            percent === 0
+              ? `<button class="secondary" data-action="reset" data-label="重新开始（清空记录）">
+                   重新开始（清空记录）
+                 </button>
+                 <div class="small muted reset-hint">还没有任何记录；点了会先从空档开始。</div>`
+              : ''
+          }
           <div class="card">
             <div class="row"><span>客户信任</span><span class="trust-num">${s.trust} / 100 · ${esc(portrait.level.label)}</span></div>
             <div class="marks">${marks}</div>
@@ -355,10 +368,7 @@
       const s = store().read();
       if (action === 'resume') return App.go(App.nextAction(s).hash);
       if (action === 'home') return App.go('#/home');
-      if (action === 'reset' && window.confirm('清除本机存档、重新开始探索？此操作无法撤销。')) {
-        store().reset();
-        App.render();
-      }
+      if (action === 'reset') return App.askReset(hit);
     }
   });
 })(window.DHKApp);

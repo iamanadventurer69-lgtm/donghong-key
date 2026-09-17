@@ -60,5 +60,20 @@ Page({
   },
   progress() {
     wx.navigateTo({ url: '/pages/progress/progress' });
+  },
+  // 清空本机记录、从头再来一遍（和档案页的入口一致，都会先问一次）
+  reset() {
+    wx.showModal({
+      title: '重新开启探索？',
+      content: '将清除本机的学习与闯关记录、信任值与行动承诺，此操作无法撤销。',
+      confirmText: '重新开始',
+      confirmColor: '#249fdc',
+      success: (r) => {
+        if (!r.confirm) return;
+        store.reset();
+        this.sync();
+        wx.showToast({ title: '已清空，从头开始', icon: 'none' });
+      }
+    });
   }
 });

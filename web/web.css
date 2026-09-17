@@ -1101,3 +1101,25 @@ input:focus-visible {
   outline: 2px solid #249fdb;
   outline-offset: 2px;
 }
+
+/* 清空记录：两段式确认的按钮状态与首页的低调入口 */
+.reset-armed {
+  border-color: #c0392b !important;
+  color: #c0392b !important;
+  background: #fdf1ef !important;
+}
+
+.reset-link {
+  margin-top: 8px;
+  color: #8a97a3;
+  font-size: 12px;
+}
+
+.reset-link:hover {
+  color: #c0392b;
+}
+
+.reset-hint {
+  margin-top: -4px;
+  text-align: center;
+}

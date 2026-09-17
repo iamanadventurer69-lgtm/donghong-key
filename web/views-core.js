@@ -127,7 +127,15 @@
         `
         <div class="topline">
           <span class="eyebrow">EASTRON / CULTURE QUEST</span>
-          <span class="pill">文化探索员</span>
+          <span class="topline-actions">
+            <button
+              class="reset-button"
+              data-action="reset"
+              data-label="重新开始"
+              data-armed-label="点这里确认清空"
+            >重新开始</button>
+            <span class="pill">文化探索员</span>
+          </span>
         </div>
         ${App.warning()}
 
@@ -189,7 +197,6 @@
             <div class="progress-track"><div class="progress-fill" style="width:${percent}%"></div></div>
             <div class="small muted">${esc(content.company)}</div>
             <button class="secondary" data-action="progress">查看探索档案</button>
-            <button class="text-button reset-link" data-action="reset" data-label="重新开始（清空记录）">重新开始（清空记录）</button>
           </div>
         </section>`,
         (root) => {
@@ -345,9 +352,7 @@
           </div>
           ${
             percent === 0
-              ? `<button class="secondary" data-action="reset" data-label="重新开始（清空记录）">
-                   重新开始（清空记录）
-                 </button>
+              ? `<button class="secondary" data-action="reset" data-label="重新开始（清空记录）">重新开始（清空记录）</button>
                  <div class="small muted reset-hint">还没有任何记录；点了会先从空档开始。</div>`
               : ''
           }

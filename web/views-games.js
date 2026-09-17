@@ -80,7 +80,7 @@
           }).join('')}
         </div>
         <div class="feedback" id="games-feedback" hidden></div>
-        <div class="hint">${unlocked ? '成绩计入通关结算的 GRADE 评级' : '小游戏：跳格子 / 配对 / 三消 / 答题'}</div>
+        <div class="hint">${unlocked ? '成绩计入通关结算的 GRADE 评级' : '小游戏：跳格子 / 模块配对 / 知识答题'}</div>
         ${unlocked ? '<button class="secondary" data-action="to-final">查看通关结算 →</button>' : '<button class="secondary" data-action="to-test">← 先去完成文化画像测试</button>'}
         ${App.warning()}`,
         (root) => {
@@ -543,9 +543,13 @@
               (
                 card,
                 index
-              ) => `<div class="card ${card.done ? 'matched' : ''} ${card.bad ? 'bad' : ''} ${flipOpen.includes(index) ? 'picked' : ''}" data-index="${index}">
-                <span class="emoji">${card.emoji}</span>
-                <span class="label">${esc(card.face)}</span>
+              ) => `<div class="card flipped ${card.done ? 'matched' : ''} ${card.bad ? 'bad' : ''} ${flipOpen.includes(index) ? 'picked' : ''}" data-index="${index}">
+                <div class="inner">
+                  <div class="face back">
+                    <span class="emoji">${card.emoji}</span>
+                    <span class="label">${esc(card.face)}</span>
+                  </div>
+                </div>
               </div>`
             )
             .join('')}

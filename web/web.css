@@ -1109,17 +1109,65 @@ input:focus-visible {
   background: #fdf1ef !important;
 }
 
-.reset-link {
-  margin-top: 8px;
-  color: #8a97a3;
-  font-size: 12px;
+/* 首页顶部「重新开始」：放在「文化探索员」旁边，做得显眼一些 */
+.topline-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.reset-link:hover {
+.reset-button {
+  border: 1.5px solid #d94b3d;
   color: #c0392b;
+  background: #fff;
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.reset-button:hover {
+  background: #fdf1ef;
 }
 
 .reset-hint {
   margin-top: -4px;
   text-align: center;
+}
+
+/* 模块配对：牌面常正（.flipped 把牌背转正），选中高亮、配错闪红、配好变绿 */
+.page-flip .card {
+  cursor: pointer;
+}
+
+/* 网页上牌面文字比小程序再大一点，手机上一眼能看清 */
+.page-flip .label {
+  font-size: 12px;
+}
+
+.page-flip .emoji {
+  font-size: 22px;
+}
+
+.page-flip .card.picked .face.back {
+  border-color: #1c7fb4;
+  background: #e9f5fd;
+  box-shadow: 0 0 0 3px rgba(28, 127, 180, 0.2);
+}
+
+.page-flip .card.bad .face.back {
+  border-color: #d94b3d;
+  background: #fdf1ef;
+  box-shadow: 0 0 0 3px rgba(217, 75, 61, 0.18);
+}
+
+.page-flip .card.matched {
+  cursor: default;
+}
+
+.page-flip .card.matched .face.back {
+  opacity: 0.75;
 }

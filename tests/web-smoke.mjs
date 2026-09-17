@@ -255,6 +255,47 @@ check(
     )
   )
 );
+const faceLook = await page.evaluate(() => {
+  const card = document.querySelector('#flip-grid .card');
+  const back = card.querySelector('.face.back');
+  const label = card.querySelector('.label');
+  const style = getComputedStyle(back);
+  const labelStyle = getComputedStyle(label);
+  return {
+    牌数: document.querySelectorAll('#flip-grid .card').length,
+    文字: label.textContent.trim(),
+    字号: parseFloat(labelStyle.fontSize),
+    牌面有底有边: style.backgroundImage !== 'none' && parseFloat(style.borderTopWidth) > 0,
+    被裁掉: label.scrollHeight > Math.ceil(label.getBoundingClientRect().height) + 1,
+    可以点: style.pointerEvents !== 'none'
+  };
+});
+check(
+  '牌面看得清、能点',
+  faceLook.牌数 === 16 &&
+    faceLook.文字.length > 1 &&
+    faceLook.字号 >= 12 &&
+    faceLook.牌面有底有边 &&
+    !faceLook.被裁掉 &&
+    faceLook.可以点,
+  JSON.stringify(faceLook)
+);
+await tap('.card[data-index="0"]');
+await wait(120);
+const picked = await page.evaluate(() => {
+  const back = document.querySelector('.card.picked .face.back');
+  if (!back) return null;
+  const style = getComputedStyle(back);
+  return { 边框: style.borderTopColor, 背景: style.backgroundColor, 阴影: style.boxShadow };
+});
+check(
+  '点一张牌会高亮，看得出选中了',
+  picked !== null && picked.阴影.includes('rgba'),
+  JSON.stringify(picked)
+);
+// 已经选中了一张牌，重新发一局再正经通关
+await tap('[data-action="restart"]');
+await wait(250);
 const pairs = await page.evaluate(() => {
   const groups = {};
   document.querySelectorAll('.card').forEach((card, index) => {
@@ -366,11 +407,39 @@ await desktop.close();
 
 /* 11. 重新开始：两段式确认，清空后回到首页（放在最后，因为它会清档） */
 await go('#/home');
-check('首页有「重新开始」入口', (await text()).includes('重新开始（清空记录）'));
+const resetBtn = await page.evaluate(() => {
+  const button = document.querySelector('.reset-button');
+  if (!button) return null;
+  const topline = button.closest('.topline');
+  const pill = topline && topline.querySelector('.pill');
+  const box = button.getBoundingClientRect();
+  const pillBox = pill && pill.getBoundingClientRect();
+  return {
+    文案: button.textContent.trim(),
+    在顶栏: Boolean(topline && pill),
+    和称号同一行: Boolean(pillBox && Math.abs(box.y - pillBox.y) < 20),
+    在称号左边: Boolean(pillBox && box.x < pillBox.x),
+    高: Math.round(box.height),
+    宽: Math.round(box.width)
+  };
+});
+check(
+  '「重新开始」是明显按钮且挨着「文化探索员」',
+  Boolean(resetBtn) &&
+    resetBtn.文案 === '重新开始' &&
+    resetBtn.在顶栏 &&
+    resetBtn.和称号同一行 &&
+    resetBtn.在称号左边 &&
+    resetBtn.高 >= 20,
+  JSON.stringify(resetBtn)
+);
 const beforeReset = (await save()).games.hop.tile;
 await tap('#app [data-action="reset"]');
 await wait(150);
-check('第一次点只是改成确认文案', (await text()).includes('确定清空？再点一次'));
+check(
+  '第一次点只是改成确认文案',
+  (await text()).includes('点这里确认清空') || (await text()).includes('确定清空？再点一次')
+);
 check('第一次点不会清档', (await save()).games.hop.tile === beforeReset);
 await tap('#app [data-action="reset"]');
 await wait(400);
@@ -393,7 +462,12 @@ check(
 );
 
 await go('#/progress');
-check('档案页也能重新开始', (await text()).includes('重新开始（清空记录）'));
+const progressText = await text();
+check(
+  '档案页也能重新开始',
+  progressText.includes('重新开始') || progressText.includes('清除本机存档'),
+  progressText.slice(0, 80)
+);
 
 await browser.close();
 server.close();

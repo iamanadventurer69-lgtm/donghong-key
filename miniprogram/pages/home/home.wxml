@@ -1,5 +1,11 @@
 <view class="viewport" bindtouchstart="swipeStart" bindtouchend="swipeEnd" bindtouchcancel="swipeCancel">
-  <view class="topline"><text class="eyebrow">EASTRON / CULTURE QUEST</text><text class="pill">文化探索员</text></view>
+  <view class="topline">
+    <text class="eyebrow">EASTRON / CULTURE QUEST</text>
+    <view class="topline-actions">
+      <button class="reset-button" bindtap="reset">重新开始</button>
+      <text class="pill">文化探索员</text>
+    </view>
+  </view>
   <view wx:if="{{warning}}" class="save-warning">{{warning}}</view>
   <view class="panel" wx:if="{{panel===0}}">
     <view>
@@ -48,7 +54,6 @@
       <view class="small muted">{{company}}</view>
     </view>
     <button class="primary" bindtap="progress">查看探索档案</button>
-    <button class="text-button" bindtap="reset">重新开始（清空记录）</button>
   </view>
   <view class="pager">
     <button class="nav-arrow" bindtap="prevPanel" disabled="{{panel===0}}">‹</button>

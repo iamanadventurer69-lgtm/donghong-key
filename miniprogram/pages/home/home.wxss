@@ -1,1 +1,26 @@
 /* Fixed viewport layout and sky-blue theme are shared in app.wxss. */
+
+/* 顶栏右侧：重新开始按钮 + 文化探索员称号 */
+.topline-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reset-button {
+  margin: 0;
+  padding: 2px 14px;
+  height: auto;
+  min-height: 0;
+  line-height: 1.8;
+  font-size: 11px;
+  font-weight: 700;
+  color: #c0392b;
+  background: #fff;
+  border: 1.5px solid #d94b3d;
+  border-radius: 999px;
+}
+
+.reset-button::after {
+  border: none;
+}

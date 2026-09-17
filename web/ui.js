@@ -198,7 +198,7 @@ window.DHKApp = window.DHKApp || {};
     const label = hit.dataset.label || hit.textContent.trim();
     if (hit.dataset.armed !== '1') {
       hit.dataset.armed = '1';
-      hit.textContent = '确定清空？再点一次（6 秒内）';
+      hit.textContent = hit.dataset.armedLabel || '确定清空？再点一次（6 秒内）';
       hit.classList.add('reset-armed');
       App.after(6000, () => {
         if (!hit.isConnected) return;

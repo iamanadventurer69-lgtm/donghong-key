@@ -762,6 +762,8 @@ button > div {
 
 .pawn-pos {
   will-change: transform;
+  /* 静止时也要站在当前平台上：动画关键帧会临时接管 transform */
+  transform: translate(var(--tx, 0px), var(--ty, 0px));
 }
 
 .pawn-pos.jump {
@@ -821,10 +823,10 @@ button > div {
   right: 14px;
   bottom: 14px;
   min-height: 0;
-  height: 216px;
+  height: 268px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   padding: 10px;
   background: #fffffff2;
   border: 1px solid #dbe2e8;
@@ -843,6 +845,36 @@ button > div {
   box-shadow:
     0 0 0 3px #6b7d9922,
     0 14px 34px #46586a26;
+}
+
+.hop-rows {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hop-charge {
+  flex: none;
+  width: 100%;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #3b3a5c, #55567f);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  box-shadow: 0 8px 20px #3b3a5c33;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.hop-dock.charging .hop-charge {
+  background: linear-gradient(135deg, #2f2e4a, #44456b);
+  transform: translateY(2px) scaleY(0.98);
 }
 
 .hop-pointer {
@@ -907,7 +939,7 @@ button > div {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 6px;
+  bottom: 288px;
   text-align: center;
   font-size: 11px;
   color: #7d8792;
@@ -977,7 +1009,10 @@ button > div {
     width: min(640px, calc(100% - 32px));
   }
   .hop-dock {
-    height: 236px;
+    height: 288px;
+  }
+  .hop-press-hint {
+    bottom: 308px;
   }
 }
 

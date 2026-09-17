@@ -203,7 +203,16 @@ check('小游戏已解锁', !(await text()).includes('尚未解锁'));
 await tap('[data-action="open"][data-id="hop"]');
 await wait(220);
 check('进入跳格子', (await hash()) === '#/hop', await hash());
-check('跳格子是按压蓄力玩法', (await text()).includes('按住工作栏蓄力'));
+check('跳格子是按压蓄力玩法', (await text()).includes('按住按钮蓄力'));
+check(
+  '棋子始终可见（静止时也有定位）',
+  await page.evaluate(() => {
+    const pawn = document.querySelector('.pawn-pos');
+    const box = pawn.getBoundingClientRect();
+    return box.width > 10 && box.height > 20 && box.x > -10 && box.x < window.innerWidth;
+  })
+);
+check('有明确的蓄力按钮', (await text()).includes('按住蓄力 · 松手选中'));
 /** 按住 ms 毫秒后松手，指针停在对应选项上（指针每 240ms 扫过一项）。 */
 const hopPress = async (ms) => {
   const box = await page.locator('#hop-dock').boundingBox();

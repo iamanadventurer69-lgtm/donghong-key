@@ -122,8 +122,25 @@
   const HOP_TOTAL = HOP.tiles.length;
   /** 指针扫过一项所需时间（毫秒）：按住越久走得越远。 */
   const HOP_STEP_MS = 240;
-  /** 等距场景：viewBox、当前平台位置、每前进一格的位移。 */
-  const BOARD = { w: 900, h: 470, base: { x: 340, y: 296 }, dx: 208, dy: -86, half: 76, thick: 52 };
+  /**
+   * 等距场景：viewBox 直接用容器的像素尺寸（1:1 映射），平台大小与间距按宽度换算，
+   * 当前平台永远放在容器中央稍偏下——这样窄屏手机也不会把棋子挤出可视区。
+   */
+  function hopLayout(stage) {
+    const w = Math.max(240, Math.round(stage.clientWidth || 414));
+    const h = Math.max(320, Math.round(stage.clientHeight || 620));
+    const half = Math.max(42, Math.min(96, Math.round(w * 0.13)));
+    return {
+      w,
+      h,
+      half,
+      thick: Math.round(half * 0.62),
+      dx: Math.round(half * 2.55),
+      dy: -Math.round(half * 1.05),
+      // 当前平台放在可视区中央偏上一点：上面有问题卡、下面有工作栏
+      base: { x: w / 2, y: h * 0.52 }
+    };
+  }
 
   let hopPointer = 0;
   let hopCharging = false;
@@ -136,18 +153,21 @@
   const HOP_CHARGE_MS = 900;
 
   /** 第 index 格相对当前格 tile 的场景坐标（当前格永远在同一个位置）。 */
-  function hopCenter(index, tile) {
+  function hopCenter(index, tile, layout) {
     const step = index - tile;
-    const shuffle = index % 2 === 0 ? -14 : 14; // 左右轻微错开，像跳一跳的随平台
-    return { x: BOARD.base.x + step * BOARD.dx, y: BOARD.base.y + step * BOARD.dy + shuffle };
+    const shuffle = (index % 2 === 0 ? -1 : 1) * Math.round(layout.half * 0.2); // 左右轻微错开
+    return {
+      x: layout.base.x + step * layout.dx,
+      y: layout.base.y + step * layout.dy + shuffle
+    };
   }
 
   /** 一块等距平台（顶面菱形 + 两个侧面），三种造型轮着来。 */
-  function hopPlatform(index, tile) {
-    const { x, y } = hopCenter(index, tile);
-    const half = BOARD.half;
-    const quarter = half / 2;
-    const thick = BOARD.thick;
+  function hopPlatform(index, tile, layout) {
+    const { x, y } = hopCenter(index, tile, layout);
+    const half = layout.half;
+    const quarter = Math.round(half * 0.5);
+    const thick = layout.thick;
     const lit = index === tile;
     const past = index < tile;
     const topFill = lit ? '#fbfcfe' : past ? '#e7e9ec' : '#f3f5f7';
@@ -160,7 +180,7 @@
     const right = `M ${x + half} ${y} L ${x} ${y + quarter} L ${x} ${y + quarter + thick} L ${x + half} ${y + thick} Z`;
 
     const shadow = `<ellipse cx="${x + 26}" cy="${y + quarter + thick + 10}" rx="${half * 0.95}" ry="${quarter * 0.72}" fill="#3d4a57" opacity="${lit ? 0.16 : 0.1}"/>`;
-    const number = `<text x="${x}" y="${y + 8}" text-anchor="middle" font-family="Menlo, monospace" font-size="26" font-weight="700" fill="${lit ? '#7d8b99' : '#a7aeb6'}">${index + 1}</text>`;
+    const number = `<text x="${x}" y="${y + Math.round(half * 0.12)}" text-anchor="middle" font-family="Menlo, monospace" font-size="${Math.round(half * 0.36)}" font-weight="700" fill="${lit ? '#7d8b99' : '#a7aeb6'}">${index + 1}</text>`;
 
     if (kind === 1) {
       // 圆柱：椭圆顶 + 弧底筒身
@@ -168,7 +188,7 @@
       return `${shadow}
         <path d="${body}" fill="${sideA}"/>
         <ellipse cx="${x}" cy="${y}" rx="${half}" ry="${quarter}" fill="${topFill}"/>
-        <ellipse cx="${x}" cy="${y}" rx="${half * 0.66}" ry="${quarter * 0.62}" fill="none" stroke="#d8dde2" stroke-width="6"/>
+        <ellipse cx="${x}" cy="${y}" rx="${half * 0.66}" ry="${quarter * 0.62}" fill="none" stroke="#d8dde2" stroke-width="${Math.max(3, Math.round(half * 0.08))}"/>
         ${number}`;
     }
 
@@ -200,10 +220,12 @@
    * 棋子：外层 .pawn-pos 负责位置与跳跃位移，内层 .pawn-body 负责蓄力下蹲与落地压扁
    * （两个变换分开，才不会互相覆盖）。charge 是松手时的蓄力值 0~1，决定跳多高。
    */
-  function hopPawn(tile, anim, charge, landing) {
-    const { x, y } = hopCenter(tile, tile);
-    const from = hopLastTile >= 0 && hopLastTile !== tile ? hopCenter(hopLastTile, tile) : null;
-    const lift = 96 + charge * 70; // 蓄力越久，抛物线顶点越高
+  function hopPawn(tile, anim, charge, landing, layout) {
+    const { x, y } = hopCenter(tile, tile, layout);
+    // 注意：位置必须写成基础 transform（--tx/--ty），否则静止时棋子会跑到 SVG 原点
+    const from =
+      hopLastTile >= 0 && hopLastTile !== tile ? hopCenter(hopLastTile, tile, layout) : null;
+    const lift = layout.h * 0.18 + charge * layout.h * 0.14; // 蓄力越久，抛物线顶点越高
     const style = from
       ? `--fx:${from.x}px;--fy:${from.y}px;--mx:${(from.x + x) / 2}px;--my:${(from.y + y) / 2 - lift}px;--tx:${x}px;--ty:${y}px;`
       : `--tx:${x}px;--ty:${y}px;`;
@@ -219,12 +241,13 @@
   }
 
   /** 整块场景：地面渐变 + 平台 + 棋子。 */
-  function hopBoardSvg(tile, anim, charge, landing) {
+  function hopBoardSvg(tile, anim, charge, landing, layout) {
     const from = Math.max(0, tile - 1);
     const to = Math.min(HOP_TOTAL - 1, tile + 3);
     const platforms = [];
-    for (let index = from; index <= to; index += 1) platforms.push(hopPlatform(index, tile));
-    return `<svg class="hop-board" viewBox="0 0 ${BOARD.w} ${BOARD.h}" preserveAspectRatio="xMidYMid slice" aria-label="跳格子场景">
+    for (let index = from; index <= to; index += 1)
+      platforms.push(hopPlatform(index, tile, layout));
+    return `<svg class="hop-board" viewBox="0 0 ${layout.w} ${layout.h}" aria-label="跳格子场景">
       <defs>
         <linearGradient id="hop-ground" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#dde1e6"/>
@@ -232,9 +255,9 @@
           <stop offset="100%" stop-color="#f5f6f8"/>
         </linearGradient>
       </defs>
-      <rect width="${BOARD.w}" height="${BOARD.h}" fill="url(#hop-ground)"/>
+      <rect width="${layout.w}" height="${layout.h}" fill="url(#hop-ground)"/>
       ${platforms.join('')}
-      ${hopPawn(tile, anim, charge, landing)}
+      ${hopPawn(tile, anim, charge, landing, layout)}
     </svg>`;
   }
 
@@ -250,6 +273,8 @@
   App.register(
     '#/hop',
     () => {
+      // 先按容器实际尺寸算场景参数：viewBox 与像素 1:1，任何屏幕都能看到棋子和平台
+      const layout = hopLayout(document.getElementById('app'));
       const s = store().read();
       const hop = s.games.hop;
       const tile = Math.min(hop.tile, HOP_TOTAL - 1);
@@ -278,7 +303,7 @@
       App.mount(
         `
         <div class="hop-stage">
-          ${hopBoardSvg(tile, anim, hopCharge, landing)}
+          ${hopBoardSvg(tile, anim, hopCharge, landing, layout)}
           <div class="hop-score">${hop.tile}<small>/ ${HOP_TOTAL} 格</small></div>
           <div class="topline">
             <button class="text-button" data-action="back">返回闯关</button>
@@ -302,9 +327,10 @@
                  </div>`
               : `<div class="hop-dock" id="hop-dock">
                    <div class="hop-pointer" id="hop-pointer"></div>
-                   ${rows}
+                   <div class="hop-rows" id="hop-rows">${rows}</div>
+                   <button class="hop-charge" id="hop-charge">按住蓄力 · 松手选中</button>
                  </div>
-                 <div class="hop-press-hint">按住工作栏蓄力 · 指针上下移动 · 松手即选中</div>`
+                 <div class="hop-press-hint">按住按钮蓄力时棋子会下蹲 · 指针上下移动 · 松手即选中</div>`
           }
           ${
             done && !hopResult
@@ -323,14 +349,16 @@
           const dock = root.querySelector('#hop-dock');
           const pointerNode = root.querySelector('#hop-pointer');
 
+          const rowsBox = root.querySelector('#hop-rows');
+
           const paintPointer = () => {
-            if (!dock || !pointerNode) return;
-            const rowNodes = dock.querySelectorAll('.hop-row');
+            if (!dock || !pointerNode || !rowsBox) return;
+            const rowNodes = rowsBox.querySelectorAll('.hop-row');
             if (rowNodes.length === 0) return;
-            const rowHeight = dock.clientHeight / rowNodes.length;
+            const rowHeight = rowsBox.clientHeight / rowNodes.length;
             const index = Math.round(hopPointer);
-            pointerNode.style.height = `${rowHeight - 10}px`;
-            pointerNode.style.top = `${index * rowHeight + 5}px`;
+            pointerNode.style.height = `${rowHeight - 8}px`;
+            pointerNode.style.top = `${rowsBox.offsetTop + index * rowHeight + 4}px`;
             rowNodes.forEach((row, i) => row.classList.toggle('focus', i === index));
           };
 
@@ -384,29 +412,36 @@
             App.render();
           };
 
-          if (dock) {
+          // 按住「蓄力按钮」或工作栏任意位置都能蓄力
+          for (const target of [dock, root.querySelector('#hop-charge')]) {
+            if (!target) continue;
             for (const [down, up] of [
               ['pointerdown', 'pointerup'],
               ['touchstart', 'touchend'],
               ['mousedown', 'mouseup']
             ]) {
-              dock.addEventListener(down, (event) => {
+              target.addEventListener(down, (event) => {
                 event.preventDefault();
                 begin();
               });
-              dock.addEventListener(up, (event) => {
+              target.addEventListener(up, (event) => {
                 event.preventDefault();
                 release();
               });
             }
-            dock.addEventListener('pointercancel', () => {
+            target.addEventListener('pointercancel', () => {
               stopCharging();
               App.render();
             });
-            paintPointer();
           }
+          paintPointer();
 
           App.onCleanup(stopCharging);
+
+          // 窗口尺寸变化时重新排一遍场景
+          const onResize = () => App.render();
+          window.addEventListener('resize', onResize);
+          App.onCleanup(() => window.removeEventListener('resize', onResize));
 
           App.on(root, '[data-action]', 'click', (event, hit) => {
             const action = hit.dataset.action;

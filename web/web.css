@@ -712,20 +712,63 @@ button > div {
 }
 
 /* 棋子：单独一层，用 CSS 动画做抛物线跳跃 */
-.hop-pawn {
-  position: absolute;
-  width: 44px;
-  height: 66px;
-  margin: -46px 0 0 -22px;
-  pointer-events: none;
+/* 棋子：内层负责蓄力下蹲与落地压扁（transform-box 让缩放围绕自身底部） */
+.pawn-body {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transform: scaleY(calc(1 - 0.34 * var(--charge, 0))) scaleX(calc(1 + 0.2 * var(--charge, 0)));
+  transition: transform 0.09s linear;
+}
+
+.pawn-body.charging {
+  transition: transform 0.05s linear;
+}
+
+.pawn-body.takeoff {
+  animation: hop-takeoff 0.2s ease-out;
+}
+
+.pawn-body.land {
+  animation: hop-land 0.34s ease-out;
+}
+
+/* 起跳 + 落地连起来：先蹬地伸展，飞在空中，最后压扁回弹 */
+.pawn-body.takeoff.land {
+  animation:
+    hop-takeoff 0.16s ease-out,
+    hop-land 0.3s ease-out 0.3s;
+}
+
+@keyframes hop-takeoff {
+  0% {
+    transform: scaleY(0.7) scaleX(1.16);
+  }
+  100% {
+    transform: scaleY(1.04) scaleX(0.98);
+  }
+}
+
+@keyframes hop-land {
+  0% {
+    transform: scaleY(0.74) scaleX(1.16);
+  }
+  45% {
+    transform: scaleY(1.07) scaleX(0.96);
+  }
+  100% {
+    transform: scaleY(1) scaleX(1);
+  }
+}
+
+.pawn-pos {
   will-change: transform;
 }
 
-.hop-pawn.jump {
+.pawn-pos.jump {
   animation: hop-arc 0.46s cubic-bezier(0.4, 0.1, 0.5, 1);
 }
 
-.hop-pawn.bump {
+.pawn-pos.bump {
   animation: hop-bump 0.42s ease-out;
 }
 

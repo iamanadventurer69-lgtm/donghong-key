@@ -131,6 +131,9 @@
   let hopStartedAt = 0;
   let hopResult = null;
   let hopLastTile = -1; // 上一帧站着的格子，用来算出「从哪跳过来」
+  let hopCharge = 0; // 本次按压的蓄力值 0~1（最长按 900ms 算满）
+  let hopAnim = ''; // '' 静止 / 'jump' 起跳落地 / 'bump' 没跳过去的抖动
+  const HOP_CHARGE_MS = 900;
 
   /** 第 index 格相对当前格 tile 的场景坐标（当前格永远在同一个位置）。 */
   function hopCenter(index, tile) {
@@ -193,24 +196,30 @@
       ${number}`;
   }
 
-  /** 棋子：圆柱身体 + 小球，站在当前平台顶面上。 */
-  function hopPawn(tile, anim) {
+  /**
+   * 棋子：外层 .pawn-pos 负责位置与跳跃位移，内层 .pawn-body 负责蓄力下蹲与落地压扁
+   * （两个变换分开，才不会互相覆盖）。charge 是松手时的蓄力值 0~1，决定跳多高。
+   */
+  function hopPawn(tile, anim, charge, landing) {
     const { x, y } = hopCenter(tile, tile);
     const from = hopLastTile >= 0 && hopLastTile !== tile ? hopCenter(hopLastTile, tile) : null;
+    const lift = 96 + charge * 70; // 蓄力越久，抛物线顶点越高
     const style = from
-      ? `--fx:${from.x}px;--fy:${from.y}px;--mx:${(from.x + x) / 2}px;--my:${(from.y + y) / 2 - 96}px;--tx:${x}px;--ty:${y}px;`
+      ? `--fx:${from.x}px;--fy:${from.y}px;--mx:${(from.x + x) / 2}px;--my:${(from.y + y) / 2 - lift}px;--tx:${x}px;--ty:${y}px;`
       : `--tx:${x}px;--ty:${y}px;`;
-    return `<g class="pawn ${anim}" style="${style}" transform="translate(${x}, ${y})">
-      <ellipse cx="2" cy="4" rx="19" ry="7" fill="#39424d" opacity="0.18"/>
-      <path d="M -12 0 C -15 -30 -7 -41 0 -43 C 7 -41 15 -30 12 0 Z" fill="#3b3a5c"/>
-      <path d="M -12 0 C -15 -30 -7 -41 0 -43 L 0 0 Z" fill="#2f2e4a" opacity="0.55"/>
-      <circle cx="0" cy="-53" r="10" fill="#2f2e4a"/>
-      <circle cx="-3.5" cy="-56" r="3" fill="#6a6a9a" opacity="0.8"/>
+    return `<g class="pawn-pos ${anim}" style="${style}">
+      <g class="pawn-body ${anim === 'jump' ? 'takeoff' : ''} ${landing}" style="--charge:0">
+        <ellipse cx="2" cy="4" rx="19" ry="7" fill="#39424d" opacity="0.18"/>
+        <path d="M -12 0 C -15 -30 -7 -41 0 -43 C 7 -41 15 -30 12 0 Z" fill="#3b3a5c"/>
+        <path d="M -12 0 C -15 -30 -7 -41 0 -43 L 0 0 Z" fill="#2f2e4a" opacity="0.55"/>
+        <circle cx="0" cy="-53" r="10" fill="#2f2e4a"/>
+        <circle cx="-3.5" cy="-56" r="3" fill="#6a6a9a" opacity="0.8"/>
+      </g>
     </g>`;
   }
 
   /** 整块场景：地面渐变 + 平台 + 棋子。 */
-  function hopBoardSvg(tile, anim) {
+  function hopBoardSvg(tile, anim, charge, landing) {
     const from = Math.max(0, tile - 1);
     const to = Math.min(HOP_TOTAL - 1, tile + 3);
     const platforms = [];
@@ -225,7 +234,7 @@
       </defs>
       <rect width="${BOARD.w}" height="${BOARD.h}" fill="url(#hop-ground)"/>
       ${platforms.join('')}
-      ${hopPawn(tile, anim)}
+      ${hopPawn(tile, anim, charge, landing)}
     </svg>`;
   }
 
@@ -252,7 +261,10 @@
         hopResult = null;
         hopLastTile = tile;
       }
-      const anim = entering ? '' : hopLastTile === tile ? 'bump' : 'jump';
+      if (entering) hopAnim = '';
+      const anim = hopAnim;
+      // 跳跃落地后压一下，再回弹
+      const landing = anim === 'jump' ? 'land' : '';
 
       const rows = current.options
         .map((option, index) => {
@@ -266,7 +278,7 @@
       App.mount(
         `
         <div class="hop-stage">
-          ${hopBoardSvg(tile, anim)}
+          ${hopBoardSvg(tile, anim, hopCharge, landing)}
           <div class="hop-score">${hop.tile}<small>/ ${HOP_TOTAL} 格</small></div>
           <div class="topline">
             <button class="text-button" data-action="back">返回闯关</button>
@@ -322,16 +334,23 @@
             rowNodes.forEach((row, i) => row.classList.toggle('focus', i === index));
           };
 
+          const pawnBody = root.querySelector('.pawn-body');
+
           const stopCharging = () => {
             if (hopRaf != null) cancelAnimationFrame(hopRaf);
             hopRaf = null;
             hopCharging = false;
             if (dock) dock.classList.remove('charging');
+            if (pawnBody) pawnBody.classList.remove('charging');
           };
 
           const tick = () => {
             hopRaf = requestAnimationFrame(tick);
-            hopPointer = hopWave(performance.now() - hopStartedAt, current.options.length);
+            const held = performance.now() - hopStartedAt;
+            hopPointer = hopWave(held, current.options.length);
+            hopCharge = Math.min(1, held / HOP_CHARGE_MS);
+            // 按住不放，棋子逐渐下蹲蓄力
+            if (pawnBody) pawnBody.style.setProperty('--charge', hopCharge.toFixed(2));
             paintPointer();
           };
 
@@ -340,18 +359,25 @@
             hopCharging = true;
             hopStartedAt = performance.now();
             hopPointer = 0;
+            hopCharge = 0;
             dock.classList.add('charging');
+            if (pawnBody) {
+              pawnBody.classList.add('charging');
+              pawnBody.style.setProperty('--charge', '0');
+            }
             paintPointer();
             if (hopRaf == null) hopRaf = requestAnimationFrame(tick);
           };
 
           const release = () => {
             if (!hopCharging) return;
+            hopCharge = Math.min(1, (performance.now() - hopStartedAt) / HOP_CHARGE_MS);
             stopCharging();
             const index = Math.max(0, Math.min(current.options.length - 1, Math.round(hopPointer)));
             const right = index === current.answer;
             hopLastTile = hop.tile;
             store().dispatch('hopAnswer', { index: hop.tile, choice: index });
+            hopAnim = right ? 'jump' : 'bump';
             hopResult = right
               ? { right: true, index, text: `${HOP.forward} ${current.explain}` }
               : { right: false, index, text: HOP.wrong };
@@ -390,11 +416,13 @@
             }
             if (action === 'retry') {
               hopResult = null;
+              hopAnim = '';
               hopLastTile = Math.min(store().read().games.hop.tile, HOP_TOTAL - 1);
               return App.render();
             }
             if (action === 'go') {
               hopResult = null;
+              hopAnim = '';
               // 已经跳过来了，重置起点，避免再播一次跳跃动画
               hopLastTile = Math.min(store().read().games.hop.tile, HOP_TOTAL - 1);
               if (store().read().games.hop.done) return App.go('#/games');

@@ -234,7 +234,14 @@
       const scene = content.prologue[panel];
       const first = !options.wide || panel === 0;
       return `
-        ${first ? '<div class="topline"><span class="eyebrow">PROLOGUE / 一度电的旅程</span></div>' : ''}
+        ${
+          first
+            ? `<div class="topline">
+                 <span class="eyebrow">PROLOGUE / 一度电的旅程</span>
+                 <button class="text-button home-button" data-action="home">⌂ 首页</button>
+               </div>`
+            : ''
+        }
         ${first ? App.warning() : ''}
         <div class="panel">
           <div>
@@ -269,7 +276,7 @@
       const progress = state.taskProgress(s);
       const nextTask = state.tasks(s).find((task) => !task.done);
       const percent = state.percent(s);
-      const head = first ? App.topbar('EXPLORER ARCHIVE / 探索档案') : '';
+      const head = App.topbar('EXPLORER ARCHIVE / 探索档案');
       const marks = state.MARKS.map((name) => {
         const value = s.marks[name] || 0;
         return `<span class="mark ${value > 0 ? 'good' : ''} ${value < 0 ? 'bad' : ''}">${name} ${value > 0 ? '+' : ''}${value}</span>`;

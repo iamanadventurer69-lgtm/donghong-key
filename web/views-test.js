@@ -107,7 +107,8 @@
         }
         ${
           shiftResult
-            ? `<button class="primary" data-action="next">${index >= total ? '结束值班，去认证配对 →' : '下一份材料 →'}</button>`
+            ? `<div class="shift-auto small muted">${index >= total ? '值班结束，正在进入认证配对…' : '正在翻开下一份材料…'}</div>
+               <button class="primary" data-action="next">${index >= total ? '结束值班，去认证配对 →' : '下一份材料 →'}</button>`
             : `<div class="actions">${
                 twoStamps
                   ? `<button class="stamp-button release" data-action="choose" data-id="${release.id}">通过</button>
@@ -146,6 +147,13 @@
               marks: markDelta(choice)
             };
             App.render();
+            // 看完后果自动进入下一份，不用再点按钮（想快点就点按钮）
+            App.after(2600, () => {
+              if (!shiftResult || !/^#\/test\/shift/.test(window.location.hash)) return;
+              shiftResult = null;
+              if (state.shiftDone(store().read())) return App.go('#/test/cert');
+              App.render();
+            });
           };
           App.swipe(root, {
             next: () => !shiftResult && twoStamps && decide(release.id),

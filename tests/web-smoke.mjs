@@ -74,7 +74,14 @@ const tap = (selector) =>
     if (!node) throw new Error('找不到元素: ' + sel);
     node.click();
   }, selector);
-const questAnswer = (index) => page.evaluate((i) => window.DHKApp.content.quests[i].answer, index);
+const questQuestion = (module, question) =>
+  page.evaluate(
+    ({ module, question }) => {
+      const list = window.DHKApp.content.quests[module].questions;
+      return list[question].answer;
+    },
+    { module, question }
+  );
 
 await page.goto(base);
 await page.evaluate(() => localStorage.clear());
@@ -111,23 +118,67 @@ for (let i = 0; i < 3; i += 1) {
 check('领密钥后进入企业文化学习', (await hash()) === '#/learn', await hash());
 check('使命密钥已领取', (await save()).prologueDone === true);
 
-/* 2. 四个模块：一步一屏（介绍 → 答题 → 结果 → 下一个模块） */
+/* 2. 四个模块：一步一屏，每个模块把一组题（3~4 题）都答对才算学完 */
+const questSizes = await page.evaluate(() =>
+  window.DHKApp.content.quests.map((quest) => quest.questions.length)
+);
+check(
+  '企业文化题库覆盖到位（每模块 ≥3 题，合计 ≥12）',
+  questSizes.every((size) => size >= 3) && questSizes.reduce((a, b) => a + b, 0) >= 12,
+  JSON.stringify(questSizes)
+);
 for (let module = 0; module < 4; module += 1) {
+  const total = questSizes[module];
   check(`第 ${module + 1} 个模块停在正确步骤`, (await text()).includes(`第 ${module + 1} / 4 步`));
-  check(`第 ${module + 1} 个模块先看内容`, (await text()).includes('开始打卡答题'));
+  check(`第 ${module + 1} 个模块先看内容`, (await text()).includes('开始答题'));
   await tap('[data-action="start-quiz"]');
   await wait(140);
-  const answer = await questAnswer(module);
-  await tap(`[data-action="answer"][data-index="${answer}"]`);
-  await wait(180);
-  const afterAnswer = await text();
+  check(`第 ${module + 1} 个模块从第 1 题开始`, (await text()).includes(`第 1 / ${total} 题`));
+  // 先故意答错一次：不给过，要重答
+  const truth = await questQuestion(module, 0);
+  const wrong = (truth + 1) % 4;
+  await tap(`[data-action="answer"][data-index="${wrong}"]`);
+  await wait(160);
+  check(`第 ${module + 1} 个模块答错要重答`, (await text()).includes('再试一次'));
   check(
-    `第 ${module + 1} 个模块答对给解释`,
-    afterAnswer.includes('学下一个模块') || afterAnswer.includes('完成学习，去做文化画像测试'),
-    afterAnswer.replace(/\s+/g, ' ').slice(-40)
+    `第 ${module + 1} 个模块答错不算打卡`,
+    (await save()).checkins[['culture', 'modules', 'values', 'world'][module]] !== true
   );
+  await tap('[data-action="retry"]');
+  await wait(140);
+  // 再逐题答对
+  for (let question = 0; question < total; question += 1) {
+    if (question > 0) {
+      check(
+        `第 ${module + 1} 个模块进入第 ${question + 1} 题`,
+        (await text()).includes(`第 ${question + 1} / ${total} 题`)
+      );
+    }
+    const answer = await questQuestion(module, question);
+    await tap(`[data-action="answer"][data-index="${answer}"]`);
+    await wait(170);
+    const afterAnswer = await text();
+    if (question < total - 1) {
+      check(
+        `第 ${module + 1} 个模块第 ${question + 1} 题答对可继续`,
+        afterAnswer.includes('下一题')
+      );
+      await tap('[data-action="next-question"]');
+      await wait(170);
+    } else {
+      check(
+        `第 ${module + 1} 个模块最后一题答对可离开`,
+        afterAnswer.includes('学下一个模块') || afterAnswer.includes('完成学习，去做文化画像测试'),
+        afterAnswer.replace(/\s+/g, ' ').slice(-40)
+      );
+      check(
+        `第 ${module + 1} 个模块全部答对才打卡`,
+        (await save()).checkins[['culture', 'modules', 'values', 'world'][module]] === true
+      );
+    }
+  }
   await tap('[data-action="next-step"]');
-  await wait(220);
+  await wait(240);
 }
 check('四个模块后进入学习完成页', (await hash()) === '#/learn/done', await hash());
 check('学习完成页提示开始测试', (await text()).includes('开始文化画像测试'));
@@ -150,8 +201,21 @@ for (let i = 0; i < 6; i += 1) {
   await tap(`[data-action="choose"][data-id="${choiceId}"]`);
   await wait(160);
   check(`第 ${i + 1} 份材料有后果页`, (await text()).includes('客户信任'));
-  await tap('[data-action="next"]');
-  await wait(220);
+  // 后果页 2.6 秒后自动进入下一份：第六份结束后直接进认证配对
+  if (i < 5) {
+    check(
+      `第 ${i + 1} 份材料能翻到下一份`,
+      await page.evaluate(() => Boolean(document.querySelector('[data-action="next"]')))
+    );
+    await wait(2900);
+    check(
+      `第 ${i + 1} 份材料自动进入下一份`,
+      await page.evaluate(() => Boolean(document.querySelector('[data-action="choose"]')))
+    );
+  } else {
+    await wait(2900);
+    check('第六份材料自动进入认证配对', (await hash()) === '#/test/cert', await hash());
+  }
 }
 check('值班结束进入认证配对', (await hash()) === '#/test/cert', await hash());
 check('值班六份都判过了', (await save()).decisions.length === 6);
@@ -384,6 +448,13 @@ for (const target of HASHES) {
   check(`${target} 字号不小于 13px`, measured.最小字号 >= 13, `${measured.最小字号}px`);
   check(`${target} 无横向溢出`, measured.横向溢出 <= 0, String(measured.横向溢出));
   check(`${target} 挂对了样式作用域`, /page-[a-z]+/.test(measured.cls), measured.cls);
+  // 首页自己不需要「首页」按钮；其他每一屏都要能一键回去
+  if (target !== '#/home') {
+    check(
+      `${target} 顶部有「首页」按钮`,
+      await page.evaluate(() => Boolean(document.querySelector('#app [data-action="home"]')))
+    );
+  }
 }
 
 /* 10. 桌面端布局：铺满宽度、三块并排、首页三栏 */
@@ -422,6 +493,12 @@ check(
 );
 check('桌面无横向溢出', layout.横向溢出 <= 0, JSON.stringify(layout));
 await desktop.close();
+
+/* 10.5 随便进一屏，点顶部「首页」都能回去 */
+await go('#/test/cert');
+await tap('#app [data-action="home"]');
+await wait(200);
+check('任何一屏点「首页」都能回到首页', (await hash()) === '#/home', await hash());
 
 /* 11. 重新开始：两段式确认，清空后回到首页（放在最后，因为它会清档） */
 await go('#/home');

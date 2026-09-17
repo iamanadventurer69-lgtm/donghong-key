@@ -58,7 +58,7 @@
 
       App.mount(
         `
-        ${App.topbar('CHALLENGE ZONE / 闯关小游戏', '<button class="text-button" data-action="back">返回首页</button>')}
+        ${App.topbar('CHALLENGE ZONE / 闯关小游戏')}
         <div class="hud ${unlocked ? '' : 'locked'}">
           <div class="row"><span class="label">${unlocked ? '小游戏进度' : '尚未解锁'}</span><span class="hud-num">${done} / ${GAME_LIST.length}</span></div>
           <div class="track"><div class="track-fill" style="width:${(done / GAME_LIST.length) * 100}%"></div></div>
@@ -296,7 +296,11 @@
           ${hopBoardSvg(tile, anim, hopCharge, landing, layout)}
           <div class="hop-score">${hop.tile}<small>/ ${HOP_TOTAL} 格</small></div>
           <div class="topline">
-            <button class="text-button" data-action="back">返回闯关</button>
+            <span class="eyebrow">CULTURE HOP / 文化跳格子</span>
+            <span class="topline-actions">
+              <button class="text-button home-button" data-action="home">⌂ 首页</button>
+              <button class="text-button" data-action="back">返回闯关</button>
+            </span>
           </div>
           <div class="hop-problem">
             <div class="hop-tile-head">
@@ -753,7 +757,7 @@
         `
         <div class="topline">
           <span class="eyebrow">FINAL REPORT / 通关结算</span>
-          <button class="text-button" data-action="home">首页</button>
+          <button class="text-button home-button" data-action="home">⌂ 首页</button>
         </div>
         <div class="sheet final">
           <div class="final-title">🏆 东鸿密钥 · 全部通关！</div>

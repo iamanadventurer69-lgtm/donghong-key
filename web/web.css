@@ -1173,3 +1173,21 @@ input:focus-visible {
 .page-flip .card.matched .face.back {
   opacity: 0.75;
 }
+
+/* 学习页：第 n / N 题 */
+.q-progress {
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: #7d9cb0;
+}
+
+/* 值班：后果页的自动前进提示 */
+.shift-auto {
+  text-align: center;
+}
+
+/* 顶栏里的「首页」按钮：每屏都能一键回首页 */
+.home-button {
+  white-space: nowrap;
+}

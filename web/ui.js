@@ -160,12 +160,15 @@ window.DHKApp = window.DHKApp || {};
     cleanups.push(() => document.removeEventListener('keydown', keys));
   };
 
-  /** 顶部：返回 / 首页之类的小按钮。 */
+  /** 顶部：左侧标题，右侧固定给一个「首页」按钮（其他按钮排在它后面）。 */
   App.topbar = function topbar(title, right) {
     return `
       <div class="topline">
         <span class="eyebrow">${App.esc(title)}</span>
-        <div class="topline-actions">${right || '<button class="text-button" data-action="home">首页</button>'}</div>
+        <div class="topline-actions">
+          <button class="text-button home-button" data-action="home">⌂ 首页</button>
+          ${right || ''}
+        </div>
       </div>`;
   };
 
@@ -183,7 +186,10 @@ window.DHKApp = window.DHKApp || {};
     return `<div class="step-head">
       <div class="topline">
         <span class="eyebrow">${App.esc(title)}</span>
-        <span class="step-count">第 ${current + 1} / ${list.length} 步 · ${App.esc(list[current].name)}</span>
+        <span class="topline-actions">
+          <button class="text-button home-button" data-action="home">⌂ 首页</button>
+          <span class="step-count">第 ${current + 1} / ${list.length} 步 · ${App.esc(list[current].name)}</span>
+        </span>
       </div>
       <div class="step-rail">${rail}</div>
       ${options.hint ? `<div class="step-hint">${App.esc(options.hint)}</div>` : ''}
@@ -218,6 +224,23 @@ window.DHKApp = window.DHKApp || {};
   App.flash = function flash(text) {
     flashText = text;
   };
+
+  /**
+   * 全局兜底：任何屏上的 [data-action="home"] 都能回首页。
+   * 用 capture 阶段先拿到事件，省得每个视图各自实现一遍（漏一个就点不动）。
+   */
+  document.addEventListener(
+    'click',
+    (event) => {
+      const hit =
+        event.target && event.target.closest && event.target.closest('[data-action="home"]');
+      if (!hit) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (DHKApp.go) DHKApp.go('#/home');
+    },
+    true
+  );
 
   /** 存档失败提示 / 一次性提示。 */
   App.warning = function warning() {

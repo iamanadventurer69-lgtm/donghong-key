@@ -353,18 +353,36 @@ const HASHES = [
 ];
 for (const target of HASHES) {
   await go(target);
-  const measured = await page.evaluate(() => ({
-    scroll: document.documentElement.scrollHeight,
-    view: window.innerHeight,
-    body: document.getElementById('app').innerText.trim().length,
-    cls: document.getElementById('app').className
-  }));
+  const measured = await page.evaluate(() => {
+    const shell = document.querySelector('.app-shell') || document.getElementById('app');
+    const style = getComputedStyle(shell);
+    // 可见的最小字号（只看有文字的叶子节点）
+    const leaves = [...shell.querySelectorAll('*')].filter((el) => {
+      if (!el.textContent.trim() || el.children.length) return false;
+      const box = el.getBoundingClientRect();
+      return box.width > 0 && box.height > 0;
+    });
+    return {
+      scroll: document.documentElement.scrollHeight,
+      view: window.innerHeight,
+      body: document.getElementById('app').innerText.trim().length,
+      cls: document.getElementById('app').className,
+      最小字号: leaves.length
+        ? Math.min(...leaves.map((el) => parseFloat(getComputedStyle(el).fontSize)))
+        : 0,
+      可滚动: style.overflowY !== 'hidden' && shell.scrollHeight > shell.clientHeight + 2,
+      横向溢出: document.documentElement.scrollWidth - window.innerWidth
+    };
+  });
   check(`${target} 有内容`, measured.body > 20);
+  // 一屏放得下最好；放不下时必须能滚动（别把内容裁掉）
   check(
-    `${target} 不溢出`,
-    measured.scroll <= measured.view + 1,
-    `${measured.scroll} > ${measured.view}`
+    `${target} 内容不被裁掉`,
+    measured.scroll <= measured.view + 1 || measured.可滚动,
+    `页面高 ${measured.scroll} / 视口 ${measured.view} / 可滚动 ${measured.可滚动}`
   );
+  check(`${target} 字号不小于 13px`, measured.最小字号 >= 13, `${measured.最小字号}px`);
+  check(`${target} 无横向溢出`, measured.横向溢出 <= 0, String(measured.横向溢出));
   check(`${target} 挂对了样式作用域`, /page-[a-z]+/.test(measured.cls), measured.cls);
 }
 

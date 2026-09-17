@@ -20,7 +20,9 @@ body {
   max-height: 920px;
   margin: 0 auto;
   border-radius: 0;
-  overflow: hidden;
+  /* 字号放大后，极小屏上内容可能超出一屏：允许纵向滚动，别把字裁掉 */
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* 平板/小桌面：还是竖屏思路，但给一点边距 */
@@ -96,7 +98,7 @@ body {
     animation: none;
   }
   .page-home .hero-title {
-    font-size: 44px;
+    font-size: 50px;
   }
   .page-home .home-canvas {
     min-height: 220px;
@@ -116,33 +118,33 @@ body {
     padding: 22px 26px;
   }
   .page-quest .sheet-title {
-    font-size: 24px;
+    font-size: 28.5px;
   }
   .page-quest .intro {
-    font-size: 14px;
+    font-size: 18.5px;
     line-height: 1.7;
   }
   .page-quest .option {
     padding: 13px 15px;
-    font-size: 14px;
+    font-size: 18.5px;
   }
   .page-quest .explain {
-    font-size: 13px;
+    font-size: 18px;
   }
   .page-quest .win-title {
-    font-size: 24px;
+    font-size: 28.5px;
   }
   .page-quest .win-text {
-    font-size: 15px;
+    font-size: 19.5px;
   }
   .page-culture .seal-core {
     width: 140px;
     height: 140px;
-    font-size: 40px;
+    font-size: 46px;
   }
   .page-culture .mark-name,
   .page-culture .mark-val {
-    font-size: 13px;
+    font-size: 18px;
   }
   .page-solution .cards {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -151,10 +153,10 @@ body {
     padding: 15px;
   }
   .page-solution .card-name {
-    font-size: 14px;
+    font-size: 18.5px;
   }
   .page-solution .card-note {
-    font-size: 12px;
+    font-size: 17px;
   }
 
   /* —— 序章：故事居中，网络图更大 —— */
@@ -169,7 +171,7 @@ body {
     max-height: 250px;
   }
   .page-prologue .narration {
-    font-size: 15px;
+    font-size: 19.5px;
   }
 
   /* —— 质量值班：材料在左，状态与按钮在右 —— */
@@ -197,13 +199,13 @@ body {
     padding: 20px 22px;
   }
   .page-shift .sheet-title {
-    font-size: 26px;
+    font-size: 30.5px;
   }
   .page-shift .sheet-body {
-    font-size: 15px;
+    font-size: 19.5px;
   }
   .page-shift .doc-text {
-    font-size: 13px;
+    font-size: 18px;
   }
   .page-shift .actions,
   .page-shift > .primary {
@@ -212,7 +214,7 @@ body {
   }
   .page-shift .actions .stamp-button {
     min-height: 56px;
-    font-size: 18px;
+    font-size: 22.5px;
   }
   .page-shift .hint {
     grid-area: hint;
@@ -257,10 +259,10 @@ body {
     padding: 16px 12px;
   }
   .page-cert .cert-name {
-    font-size: 15px;
+    font-size: 19.5px;
   }
   .page-cert .market-name {
-    font-size: 16px;
+    font-size: 20.5px;
   }
 
   /* —— 小游戏区：两张一排 —— */
@@ -274,10 +276,10 @@ body {
     padding: 14px 16px;
   }
   .page-games .game-icon {
-    font-size: 24px;
+    font-size: 28.5px;
   }
   .page-games .game-name {
-    font-size: 16px;
+    font-size: 20.5px;
   }
   .page-games .hud {
     max-width: 720px;
@@ -299,14 +301,14 @@ body {
     padding: 16px 20px;
   }
   .page-hop .tile-point {
-    font-size: 13px;
+    font-size: 18px;
   }
   .page-hop .q-text {
-    font-size: 16px;
+    font-size: 20.5px;
   }
   .page-hop .option {
     padding: 11px 14px;
-    font-size: 14px;
+    font-size: 18.5px;
   }
 
   /* —— 翻牌 / 三消：棋盘限宽居中 —— */
@@ -317,7 +319,7 @@ body {
     margin: 0 auto;
   }
   .page-flip .label {
-    font-size: 12px;
+    font-size: 17px;
   }
   .page-crush .board {
     max-width: 560px;
@@ -331,7 +333,7 @@ body {
     margin: 0 auto;
   }
   .page-crush .cell {
-    font-size: 24px;
+    font-size: 28.5px;
   }
 
   /* —— 答题：窄栏居中 —— */
@@ -345,14 +347,14 @@ body {
     margin: 0 auto;
   }
   .page-quiz .q-text {
-    font-size: 19px;
+    font-size: 23.5px;
   }
   .page-quiz .option {
     padding: 12px 16px;
-    font-size: 14px;
+    font-size: 18.5px;
   }
   .page-quiz .result-score {
-    font-size: 56px;
+    font-size: 62px;
   }
 
   /* —— 实验台：仪表在左，状态在右 —— */
@@ -389,7 +391,7 @@ body {
     grid-area: hint;
   }
   .page-repro .hud-val {
-    font-size: 20px;
+    font-size: 24.5px;
   }
 
   /* —— 通关结算：居中单栏 —— */
@@ -528,7 +530,7 @@ button > div {
 }
 
 .home-flow-title {
-  font-size: 14px;
+  font-size: 18.5px;
   font-weight: 700;
   color: #123f60;
 }
@@ -579,13 +581,13 @@ button > div {
 
 .flow-number {
   font:
-    800 20px Menlo,
+    800 23px Menlo,
     monospace;
   color: #2aa3dd;
 }
 
 .flow-name {
-  font-size: 16px;
+  font-size: 20.5px;
   font-weight: 700;
   color: #123f60;
 }
@@ -595,14 +597,14 @@ button > div {
 }
 
 .flow-line {
-  font-size: 12.5px;
+  font-size: 17.5px;
   line-height: 1.5;
   color: #476b82;
 }
 
 .flow-cta {
   margin-top: auto;
-  font-size: 12px;
+  font-size: 17px;
   font-weight: 600;
   color: #1c7fb4;
 }
@@ -615,7 +617,7 @@ button > div {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 26.5px;
   color: #a9d3ea;
 }
 
@@ -635,7 +637,7 @@ button > div {
 
 .home-about .values {
   justify-content: flex-start;
-  font-size: 16px;
+  font-size: 20.5px;
 }
 
 /* 窄屏：纵向堆叠，箭头转向 */
@@ -652,7 +654,7 @@ button > div {
   }
   .flow-arrow {
     transform: rotate(90deg);
-    font-size: 18px;
+    font-size: 22.5px;
   }
   .home-flow-title {
     text-align: center;
@@ -690,7 +692,7 @@ button > div {
   align-items: baseline;
   gap: 6px;
   font:
-    700 46px/1 Menlo,
+    700 50px/1 Menlo,
     monospace;
   color: #3f4650;
   letter-spacing: -1px;
@@ -698,7 +700,7 @@ button > div {
 }
 
 .hop-score small {
-  font-size: 14px;
+  font-size: 18.5px;
   font-weight: 600;
   color: #7b838d;
   letter-spacing: 0;
@@ -735,7 +737,7 @@ button > div {
 
 .hop-auto {
   margin-left: 6px;
-  font-size: 11px;
+  font-size: 16.5px;
   color: #7d9cb0;
 }
 
@@ -882,7 +884,7 @@ button > div {
   border-radius: 14px;
   background: linear-gradient(135deg, #3b3a5c, #55567f);
   color: #fff;
-  font-size: 15px;
+  font-size: 19.5px;
   font-weight: 700;
   letter-spacing: 1px;
   box-shadow: 0 8px 20px #3b3a5c33;
@@ -918,7 +920,7 @@ button > div {
   padding: 6px 12px;
   border-radius: 12px;
   color: #3d4552;
-  font-size: 13.5px;
+  font-size: 18.5px;
   line-height: 1.35;
 }
 
@@ -929,7 +931,7 @@ button > div {
   border-radius: 50%;
   background: #eceff3;
   color: #5a6472;
-  font-size: 11px;
+  font-size: 16.5px;
   font-weight: 700;
   text-align: center;
   line-height: 22px;
@@ -960,7 +962,7 @@ button > div {
   right: 0;
   bottom: 288px;
   text-align: center;
-  font-size: 11px;
+  font-size: 16.5px;
   color: #7d8792;
 }
 
@@ -971,7 +973,7 @@ button > div {
   bottom: 92px;
   padding: 10px 12px;
   border-radius: 12px;
-  font-size: 12.5px;
+  font-size: 17.5px;
   line-height: 1.55;
   box-shadow: 0 10px 24px #46586a1f;
 }
@@ -1058,7 +1060,7 @@ button > div {
   align-items: center;
   justify-content: center;
   font:
-    600 11px Menlo,
+    600 15.5px Menlo,
     monospace;
   background: #eaf4fb;
   color: #5a8199;
@@ -1086,12 +1088,12 @@ button > div {
 }
 
 .step-count {
-  font-size: 11px;
+  font-size: 16.5px;
   color: #4f7e9c;
 }
 
 .step-hint {
-  font-size: 11px;
+  font-size: 16.5px;
   color: #7d9cb0;
 }
 
@@ -1122,7 +1124,7 @@ input:focus-visible {
   background: #fff;
   border-radius: 999px;
   padding: 5px 14px;
-  font-size: 12px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: 0.4px;
   cursor: pointer;
@@ -1145,11 +1147,11 @@ input:focus-visible {
 
 /* 网页上牌面文字比小程序再大一点，手机上一眼能看清 */
 .page-flip .label {
-  font-size: 12px;
+  font-size: 17px;
 }
 
 .page-flip .emoji {
-  font-size: 22px;
+  font-size: 26.5px;
 }
 
 .page-flip .card.picked .face.back {

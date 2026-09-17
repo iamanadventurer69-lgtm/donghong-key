@@ -88,6 +88,43 @@ function buildBundle() {
 }
 
 /** WXSS → CSS：只替换独立出现的 view / text 标签名与 page 选择器。 */
+/**
+ * 网页版字号：小程序的 px 是按手机屏定的，搬到浏览器（尤其桌面）会显得又小又碎。
+ * 转 CSS 时统一放大一档——只动 font-size / px 的 line-height / letter-spacing，
+ * 不动 padding、height 这些布局尺寸，所以各页仍是原来的版式。
+ */
+function webFontSize(size) {
+  if (size >= 30) return size + 2; // 超大数字（跳格子计数这种）
+  if (size >= 18) return size + 1.5; // 标题
+  if (size >= 14) return size + 1.5; // 正文
+  if (size >= 12) return size + 2; // 小正文
+  if (size >= 11) return 13.5; // 说明文字
+  return 13; // 10px 及更小的标签、脚注：网页上再小就不合适了
+}
+
+function scaleType(css) {
+  return (
+    css
+      .replace(
+        /font-size:\s*([\d.]+)px/g,
+        (all, size) => `font-size: ${webFontSize(Number(size))}px`
+      )
+      // font 简写里也有字号（如 font: 700 19px Menlo）
+      .replace(
+        /font:\s*([^;{}]*?)([\d.]+)px/g,
+        (all, head, size) => `font: ${head}${webFontSize(Number(size))}px`
+      )
+      .replace(
+        /line-height:\s*([\d.]+)px/g,
+        (all, size) => `line-height: ${Number((Number(size) * 1.12).toFixed(1))}px`
+      )
+      .replace(
+        /letter-spacing:\s*([\d.]+)px/g,
+        (all, size) => `letter-spacing: ${Number((Number(size) * 1.2).toFixed(2))}px`
+      )
+  );
+}
+
 function portWxss(source) {
   return source
     .replace(/(^|\n)\s*page\s*\{/g, '$1body {')
@@ -154,7 +191,7 @@ function generateStyles() {
   ].filter((entry) => fs.existsSync(path.join(mini, entry.file)));
 
   const chunks = files.map(({ file, scope }) => {
-    const ported = portWxss(fs.readFileSync(path.join(mini, file), 'utf8'));
+    const ported = scaleType(portWxss(fs.readFileSync(path.join(mini, file), 'utf8')));
     const head = `/* ==== ${file}${scope ? ` → ${scope}` : ''} ==== */`;
     return `${head}\n${scope ? scopeCss(ported, scope) : ported}`;
   });

@@ -199,7 +199,7 @@ check('保存承诺完成测试', (await save()).completed === true);
 check('测试结束进入小游戏', (await hash()) === '#/games', await hash());
 check('小游戏已解锁', !(await text()).includes('尚未解锁'));
 
-/* 7. 五个小游戏 */
+/* 7. 四个小游戏 */
 await tap('[data-action="open"][data-id="hop"]');
 await wait(220);
 check('进入跳格子', (await hash()) === '#/hop', await hash());
@@ -213,7 +213,7 @@ check(
   })
 );
 check('有明确的蓄力按钮', (await text()).includes('按住蓄力 · 松手选中'));
-/** 按住 ms 毫秒后松手，指针停在对应选项上（指针每 240ms 扫过一项）。 */
+/** 按住 ms 毫秒后松手，指针停在对应选项上（指针每 360ms 扫过一项）。 */
 const hopPress = async (ms) => {
   const box = await page.locator('#hop-dock').boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -229,16 +229,20 @@ for (let step = 0; step < hopAnswers.length; step += 1) {
   const tile = (await save()).games.hop.tile;
   const wrong = (hopAnswers[tile] + 1) % 4;
   // 先故意选错：应停在原格并提示重选
-  await hopPress(240 * wrong + 40);
+  await hopPress(360 * wrong + 50);
   check(`第 ${tile + 1} 格选错停在原格`, (await save()).games.hop.tile === tile);
   check('选错后提示重新选', (await text()).includes('重新选一次'));
   await tap('[data-action="retry"]');
   await wait(160);
   // 再选对：前进一格
-  await hopPress(240 * hopAnswers[tile] + 40);
+  await hopPress(360 * hopAnswers[tile] + 50);
   check(`第 ${tile + 1} 格选对前进一格`, (await save()).games.hop.tile === tile + 1);
-  await tap('[data-action="go"]');
-  await wait(180);
+  check('选对后没有「下一格」按钮', (await page.locator('[data-action="go"]').count()) === 0);
+  await wait(1400); // 等它自己进入下一格
+  check(
+    `第 ${tile + 1} 格自动进入下一格`,
+    tile + 1 >= hopAnswers.length || (await page.locator('#hop-dock').count()) === 1
+  );
 }
 check('跳格子走到终点', (await save()).games.hop.done === true);
 
@@ -268,48 +272,6 @@ for (const group of pairs) {
 }
 await wait(400);
 check('模块配对完成', (await save()).games.flip.done === true);
-
-await go('#/crush');
-const swapPair = await page.evaluate(() => {
-  const m = window.DHKApp.match3;
-  const size = window.DHKApp.content.match3.size;
-  const tiles = window.DHKApp.content.match3.tiles;
-  const board = Array.from({ length: size }, (_, r) =>
-    Array.from({ length: size }, (_, c) =>
-      tiles.findIndex(
-        (t) =>
-          t.emoji ===
-          document.querySelector(`[data-row="${r}"][data-col="${c}"]`).textContent.trim()
-      )
-    )
-  );
-  for (let r = 0; r < size; r += 1) {
-    for (let c = 0; c < size; c += 1) {
-      for (const [dr, dc] of [
-        [0, 1],
-        [1, 0]
-      ]) {
-        const to = { row: r + dr, col: c + dc };
-        if (to.row >= size || to.col >= size) continue;
-        if (m.findMatches(m.swapTiles(board, { row: r, col: c }, to)).length) {
-          return [{ row: r, col: c }, to];
-        }
-      }
-    }
-  }
-  return null;
-});
-check('棋盘存在可消的一步', swapPair !== null);
-await tap(`[data-row="${swapPair[0].row}"][data-col="${swapPair[0].col}"]`);
-await tap(`[data-row="${swapPair[1].row}"][data-col="${swapPair[1].col}"]`);
-await wait(700);
-check('三消得分并停稳', (await page.textContent('#crush-score')) !== '0');
-// 三消要等 60 秒倒计时结束才记录成绩（和小程序一致），这里就等它自然结束。
-// 注意：Chromium 会把后台页的定时器降到 1 分钟一次，所以先把它切到前台。
-await page.bringToFront();
-const crushDeadline = Date.now() + 75000;
-while (Date.now() < crushDeadline && !(await save()).games.crush.done) await wait(1000);
-check('三消成绩已记录', (await save()).games.crush.done === true);
 
 await go('#/quiz');
 const bank = await page.evaluate(() => window.DHKApp.content.quizBank.map((q) => q.ans));
@@ -344,7 +306,6 @@ const HASHES = [
   '#/games',
   '#/hop',
   '#/flip',
-  '#/crush',
   '#/quiz',
   '#/final',
   '#/progress'
@@ -406,5 +367,5 @@ await desktop.close();
 await browser.close();
 server.close();
 console.log(
-  `网页版端到端测试通过：${checks.length} 项断言（16 条路由、4 个小游戏、学习与测试向导全链路）`
+  `网页版端到端测试通过：${checks.length} 项断言（15 条路由、3 个小游戏、学习与测试向导全链路）`
 );

@@ -15,10 +15,9 @@ function nextTask(s) {
 
 /** 各局成绩的简短文案。 */
 function scoreText(s) {
-  const { flip, crush, quiz } = s.games;
+  const { flip, quiz } = s.games;
   return {
     flip: flip.done ? `${flip.moves} 步 / ${flip.seconds} 秒` : '未完成',
-    crush: crush.done ? `${crush.score} 分` : '未完成',
     quiz: quiz.done
       ? `${quiz.score} 分`
       : quiz.results.length > 0

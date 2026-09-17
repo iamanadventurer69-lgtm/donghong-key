@@ -54,7 +54,6 @@
     <view class="card">
       <view class="label">各局成绩</view>
       <view class="row small"><text>模块配对</text><text>{{scores.flip}}</text></view>
-      <view class="row small"><text>能量三消</text><text>{{scores.crush}}</text></view>
       <view class="row small"><text>知识答题</text><text>{{scores.quiz}}</text></view>
       <view class="row small"><text>客户信任</text><text>{{trust}} / 100</text></view>
     </view>

@@ -1,13 +1,12 @@
 /**
  * 网页版小游戏：小游戏区、文化跳格子（按压蓄力选答案）、模块配对（牌面正面朝上）、
- * 能量三消、知识答题，以及通关结算。
- * 对应小程序的 pages/games、hop、flip、crush、quiz。
+ * 知识答题，以及通关结算。对应小程序的 pages/games、hop、flip、quiz。
  *
  * 高频交互（三消 / 蓄力指针）用直改 DOM + 自己的定时器；定时器在离开页面时自停
  * （tick 里检查当前路由），避免切屏后还在跑。
  */
 (function (App) {
-  const { state, content, match3, esc } = App;
+  const { state, content, esc } = App;
   const store = () => window.DHKStore;
   const here = (hash) => location.hash === hash;
   const $ = (id) => document.getElementById(id);
@@ -27,13 +26,6 @@
       name: '模块配对',
       hint: '牌都正面朝上，直接点两张配对'
     },
-    {
-      id: 'crush',
-      hash: '#/crush',
-      icon: '✨',
-      name: '能量三消',
-      hint: '60 秒内多消几组，连击翻倍'
-    },
     { id: 'quiz', hash: '#/quiz', icon: '📝', name: '知识答题', hint: '十题一百分，答完给解释' }
   ];
 
@@ -51,7 +43,6 @@
           ? `第 ${g.hop.tile} 格`
           : '';
     if (id === 'flip') return g.flip.done ? `${g.flip.moves} 步` : '';
-    if (id === 'crush') return g.crush.done ? `${g.crush.score} 分` : '';
     if (id === 'quiz') return g.quiz.done ? `${g.quiz.score} 分` : '';
     return '';
   }
@@ -121,7 +112,7 @@
   const HOP = content.hopGame;
   const HOP_TOTAL = HOP.tiles.length;
   /** 指针扫过一项所需时间（毫秒）：按住越久走得越远。 */
-  const HOP_STEP_MS = 240;
+  const HOP_STEP_MS = 360;
   /**
    * 等距场景：viewBox 直接用容器的像素尺寸（1:1 映射），平台大小与间距按宽度换算，
    * 当前平台永远放在容器中央稍偏下——这样窄屏手机也不会把棋子挤出可视区。
@@ -150,7 +141,7 @@
   let hopLastTile = -1; // 上一帧站着的格子，用来算出「从哪跳过来」
   let hopCharge = 0; // 本次按压的蓄力值 0~1（最长按 900ms 算满）
   let hopAnim = ''; // '' 静止 / 'jump' 起跳落地 / 'bump' 没跳过去的抖动
-  const HOP_CHARGE_MS = 900;
+  const HOP_CHARGE_MS = 1600; // 蓄力更慢：蹲到位要 1.6 秒
 
   /** 第 index 格相对当前格 tile 的场景坐标（当前格永远在同一个位置）。 */
   function hopCenter(index, tile, layout) {
@@ -182,14 +173,15 @@
     const shadow = `<ellipse cx="${x + 26}" cy="${y + quarter + thick + 10}" rx="${half * 0.95}" ry="${quarter * 0.72}" fill="#3d4a57" opacity="${lit ? 0.16 : 0.1}"/>`;
     const number = `<text x="${x}" y="${y + Math.round(half * 0.12)}" text-anchor="middle" font-family="Menlo, monospace" font-size="${Math.round(half * 0.36)}" font-weight="700" fill="${lit ? '#7d8b99' : '#a7aeb6'}">${index + 1}</text>`;
 
+    const wrap = (inner) => `${shadow}<g class="hop-plat ${lit ? 'current' : ''}">${inner}</g>`;
+
     if (kind === 1) {
       // 圆柱：椭圆顶 + 弧底筒身
       const body = `M ${x - half} ${y} L ${x - half} ${y + thick} A ${half} ${quarter} 0 0 0 ${x + half} ${y + thick} L ${x + half} ${y} Z`;
-      return `${shadow}
-        <path d="${body}" fill="${sideA}"/>
+      return wrap(`<path d="${body}" fill="${sideA}"/>
         <ellipse cx="${x}" cy="${y}" rx="${half}" ry="${quarter}" fill="${topFill}"/>
         <ellipse cx="${x}" cy="${y}" rx="${half * 0.66}" ry="${quarter * 0.62}" fill="none" stroke="#d8dde2" stroke-width="${Math.max(3, Math.round(half * 0.08))}"/>
-        ${number}`;
+        ${number}`);
     }
 
     if (kind === 2) {
@@ -200,20 +192,18 @@
             `<path d="M ${x - half} ${y + thick * f} L ${x} ${y + quarter + thick * f} L ${x + half} ${y + thick * f} L ${x} ${y + quarter + thick * f + 8} Z" fill="#ffffff" opacity="0.35"/>`
         )
         .join('');
-      return `${shadow}
-        <path d="${left}" fill="${sideA}"/>
+      return wrap(`<path d="${left}" fill="${sideA}"/>
         <path d="${right}" fill="${sideB}"/>
         ${stripes}
         <path d="${top}" fill="${topFill}"/>
-        ${number}`;
+        ${number}`);
     }
 
-    return `${shadow}
-      <path d="${left}" fill="${sideA}"/>
+    return wrap(`<path d="${left}" fill="${sideA}"/>
       <path d="${right}" fill="${sideB}"/>
       <path d="${top}" fill="${topFill}"/>
       <path d="${top}" fill="none" stroke="#e2e6ea" stroke-width="1.5"/>
-      ${number}`;
+      ${number}`);
   }
 
   /**
@@ -317,14 +307,14 @@
           </div>
           ${
             hopResult
-              ? `<div class="hop-feedback ${hopResult.right ? 'good' : 'bad'}">${esc(hopResult.text)}</div>
-                 <div class="hop-actions">
-                   ${
-                     hopResult.right
-                       ? `<button class="primary" data-action="go">${done ? '走到终点了，看我表现 →' : '跳上下一格 →'}</button>`
-                       : '<button class="primary" data-action="retry">重新选一次</button>'
-                   }
-                 </div>`
+              ? `<div class="hop-feedback ${hopResult.right ? 'good' : 'bad'}">${esc(hopResult.text)}${
+                  hopResult.right ? '<span class="hop-auto">正在进入下一格…</span>' : ''
+                }</div>
+                 ${
+                   hopResult.right
+                     ? ''
+                     : '<div class="hop-actions"><button class="primary" data-action="retry">重新选一次</button></div>'
+                 }`
               : `<div class="hop-dock" id="hop-dock">
                    <div class="hop-pointer" id="hop-pointer"></div>
                    <div class="hop-rows" id="hop-rows">${rows}</div>
@@ -363,6 +353,9 @@
           };
 
           const pawnBody = root.querySelector('.pawn-body');
+          const currentPlat = root.querySelector('.hop-plat.current');
+          // 平台下压时顶面会下沉，棋子要跟着沉这么多
+          const platformSink = layout.half * 0.5 + layout.thick;
 
           const stopCharging = () => {
             if (hopRaf != null) cancelAnimationFrame(hopRaf);
@@ -377,8 +370,15 @@
             const held = performance.now() - hopStartedAt;
             hopPointer = hopWave(held, current.options.length);
             hopCharge = Math.min(1, held / HOP_CHARGE_MS);
-            // 按住不放，棋子逐渐下蹲蓄力
-            if (pawnBody) pawnBody.style.setProperty('--charge', hopCharge.toFixed(2));
+            // 按住不放：棋子下蹲，脚下的平台同步下压，棋子随平台一起沉下去
+            if (pawnBody) {
+              pawnBody.style.setProperty('--charge', hopCharge.toFixed(2));
+              pawnBody.style.setProperty(
+                '--drop',
+                (hopCharge * platformSink * 0.3).toFixed(1) + 'px'
+              );
+            }
+            if (currentPlat) currentPlat.style.setProperty('--charge', hopCharge.toFixed(2));
             paintPointer();
           };
 
@@ -392,7 +392,9 @@
             if (pawnBody) {
               pawnBody.classList.add('charging');
               pawnBody.style.setProperty('--charge', '0');
+              pawnBody.style.setProperty('--drop', '0px');
             }
+            if (currentPlat) currentPlat.style.setProperty('--charge', '0');
             paintPointer();
             if (hopRaf == null) hopRaf = requestAnimationFrame(tick);
           };
@@ -410,6 +412,16 @@
               ? { right: true, index, text: `${HOP.forward} ${current.explain}` }
               : { right: false, index, text: HOP.wrong };
             App.render();
+            if (right) {
+              // 跳过去了：看一眼解释就自动进入下一格（不用再点按钮）
+              App.after(1200, () => {
+                hopResult = null;
+                hopAnim = '';
+                hopLastTile = Math.min(store().read().games.hop.tile, HOP_TOTAL - 1);
+                if (store().read().games.hop.done) App.go('#/games');
+                else App.render();
+              });
+            }
           };
 
           // 按住「蓄力按钮」或工作栏任意位置都能蓄力
@@ -621,179 +633,6 @@
     'flip'
   );
 
-  /* ==================== 能量三消 ==================== */
-  const SIZE = content.match3.size;
-  let crushBoard = null;
-  let crushScore = 0;
-  let crushCombo = 0;
-  let crushTimeLeft = content.match3.seconds;
-  let crushSelected = null;
-  let crushResolving = false;
-  let crushTimer = null;
-
-  function crushReset() {
-    crushBoard = match3.createBoard(SIZE);
-    crushScore = 0;
-    crushCombo = 0;
-    crushTimeLeft = content.match3.seconds;
-    crushSelected = null;
-    crushResolving = false;
-    if (crushTimer) clearInterval(crushTimer);
-    crushTimer = null;
-  }
-
-  function crushCells() {
-    return match3.decorate(crushBoard);
-  }
-
-  function crushPaint(root) {
-    const html = crushCells()
-      .map(
-        (row) =>
-          `<div class="row">${row.cells
-            .map(
-              (cell) =>
-                `<div class="cell ${crushSelected && crushSelected.row === cell.row && crushSelected.col === cell.col ? 'sel' : ''} ${cell.clearing ? 'pop' : ''}" style="background:${cell.color}" data-row="${cell.row}" data-col="${cell.col}">${cell.emoji}</div>`
-            )
-            .join('')}</div>`
-      )
-      .join('');
-    root.querySelector('#crush-board').innerHTML = html;
-    root.querySelector('#crush-score').textContent = crushScore;
-    root.querySelector('#crush-combo').textContent = crushCombo;
-    root.querySelector('#crush-time').textContent = crushTimeLeft;
-  }
-
-  function crushStartClock(root) {
-    if (crushTimer) return;
-    crushTimer = setInterval(() => {
-      if (!here('#/crush')) {
-        clearInterval(crushTimer);
-        crushTimer = null;
-        return;
-      }
-      crushTimeLeft -= 1;
-      root.querySelector('#crush-time').textContent = Math.max(0, crushTimeLeft);
-      if (crushTimeLeft <= 0) {
-        clearInterval(crushTimer);
-        crushTimer = null;
-        if (crushScore > 0) store().dispatch('crushResult', { score: crushScore });
-        root.querySelector('#crush-over').hidden = false;
-        root.querySelector('#crush-final').textContent = crushScore;
-        root.querySelector('#crush-rank').textContent =
-          crushScore >= 300 ? '⭐ 手速大师' : crushScore >= 150 ? '👍 手速不错' : '💪 再接再厉';
-      }
-    }, 1000);
-  }
-
-  function crushCascade(root, board, combo) {
-    const matches = match3.findMatches(board);
-    if (matches.length === 0) {
-      let next = board;
-      if (!match3.hasMove(next)) {
-        next = match3.createBoard(SIZE);
-        root.querySelector('#crush-hint').textContent = '没有可消的组合了，已经重新发牌';
-      }
-      crushBoard = next;
-      crushCombo = 0;
-      crushResolving = false;
-      crushPaint(root);
-      return;
-    }
-    const step = combo + 1;
-    crushScore += match3.scoreFor(matches.length, step);
-    crushCombo = step;
-    crushBoard = board;
-    // 先画出「消除中」的一帧，让 pop 动画跑起来
-    crushBoard = board;
-    root.querySelector('#crush-board').innerHTML = match3
-      .decorate(board, matches)
-      .map(
-        (row) =>
-          `<div class="row">${row.cells
-            .map(
-              (cell) =>
-                `<div class="cell ${cell.clearing ? 'pop' : ''}" style="background:${cell.color}" data-row="${cell.row}" data-col="${cell.col}">${cell.emoji}</div>`
-            )
-            .join('')}</div>`
-      )
-      .join('');
-    root.querySelector('#crush-score').textContent = crushScore;
-    root.querySelector('#crush-combo').textContent = crushCombo;
-
-    App.after(200, () => {
-      crushCascade(root, match3.collapse(board, matches), step);
-    });
-  }
-
-  App.register('#/crush', () => {
-    if (!crushBoard) crushReset();
-    App.mount(
-      `
-      ${App.topbar('ENERGY CRUSH / 能量三消', '<button class="text-button" data-action="back">返回闯关</button>')}
-      <div class="hud">
-        <div class="hud-item"><span class="hud-val" id="crush-time">${crushTimeLeft}</span><span class="hud-lbl">剩余时间</span></div>
-        <div class="hud-item"><span class="hud-val" id="crush-score">${crushScore}</span><span class="hud-lbl">得分</span></div>
-        <div class="hud-item"><span class="hud-val" id="crush-combo">${crushCombo}</span><span class="hud-lbl">连击</span></div>
-      </div>
-      <div class="board" id="crush-board"></div>
-      <div class="hint" id="crush-hint">点两个相邻的方块交换，三连即消 · 三连 10 分，连击翻倍</div>
-      <button class="secondary" data-action="restart">🔄 重新开始</button>
-      <div class="mask" id="crush-over" hidden><div class="sheet">
-        <div class="win-title">🎉 时间到！</div>
-        <div class="win-score" id="crush-final">0</div>
-        <div class="win-lbl">最终得分</div>
-        <div class="win-rank" id="crush-rank"></div>
-        <button class="primary" data-action="back">回到小游戏 →</button>
-        <button class="secondary" data-action="restart">🔄 再来一局</button>
-      </div></div>
-      ${App.warning()}`,
-      (root) => {
-        crushPaint(root);
-
-        App.on(root, '[data-action]', 'click', (event, hit) => {
-          const action = hit.dataset.action;
-          if (action === 'back') return App.go('#/games');
-          if (action === 'restart') {
-            crushReset();
-            return App.render();
-          }
-        });
-
-        App.on(root, '#crush-board .cell', 'click', (event, hit) => {
-          if (crushResolving || crushTimeLeft <= 0) return;
-          const cell = { row: Number(hit.dataset.row), col: Number(hit.dataset.col) };
-          if (!crushSelected) {
-            crushSelected = cell;
-            return crushPaint(root);
-          }
-          if (crushSelected.row === cell.row && crushSelected.col === cell.col) {
-            crushSelected = null;
-            return crushPaint(root);
-          }
-          if (!match3.isAdjacent(crushSelected, cell)) {
-            crushSelected = cell;
-            return crushPaint(root);
-          }
-
-          const swapped = match3.swapTiles(crushBoard, crushSelected, cell);
-          if (match3.findMatches(swapped).length === 0) {
-            crushSelected = null;
-            crushPaint(root);
-            root.querySelector('#crush-board').classList.add('shake');
-            App.after(280, () => root.querySelector('#crush-board').classList.remove('shake'));
-            return;
-          }
-
-          crushStartClock(root);
-          crushSelected = null;
-          crushResolving = true;
-          crushCascade(root, swapped, 0);
-        });
-      }
-    );
-  });
-
   /* ==================== 知识答题 ==================== */
   const BANK = content.quizBank;
   let quizChosen = -1;
@@ -924,7 +763,6 @@
           <div class="final-scores">
             <div class="final-score"><span class="final-val">${board.trust}</span><span class="final-lbl">客户信任</span></div>
             <div class="final-score"><span class="final-val">${board.hop.wrong}</span><span class="final-lbl">跳格子失误</span></div>
-            <div class="final-score"><span class="final-val">${board.crush.score}</span><span class="final-lbl">三消得分</span></div>
             <div class="final-score"><span class="final-val">${board.quiz.score}</span><span class="final-lbl">答题分数</span></div>
           </div>
           <div class="final-detail">

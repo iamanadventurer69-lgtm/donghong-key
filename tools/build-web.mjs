@@ -3,7 +3,7 @@
  * 构建网页版产物（零依赖）：
  *
  *   1. web/bundle.js   —— 把小程序里那几份「共享内核」（data/content.js、
- *      utils/state.js、utils/match3.js）打包成浏览器可用的 CommonJS 注册表，
+ *      utils/state.js）打包成浏览器可用的 CommonJS 注册表，
  *      挂到 window.DHK。网页版和小程序因此共用同一套规则与文案，改一处两边同步。
  *   2. web/styles.css  —— 把小程序各页 WXSS 转成浏览器 CSS：page→body、
  *      view→div、text→span（不动 .text-button 这类类名），并按 app → 组件 → 页面的
@@ -20,7 +20,7 @@ const mini = path.join(root, 'miniprogram');
 const web = path.join(root, 'web');
 
 /** 共享内核：虚拟 id 必须与 require() 的相对路径能对上。 */
-const MODULES = ['data/content.js', 'utils/state.js', 'utils/match3.js'];
+const MODULES = ['data/content.js', 'utils/state.js'];
 
 function wrapModule(id, source) {
   return `define(${JSON.stringify(id)}, function (require, module, exports) {\n${source}\n});\n`;

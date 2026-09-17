@@ -28,7 +28,7 @@
         <text class="section-title">闯关小游戏</text>
         <text class="tag">{{gameTag}}</text>
       </view>
-      <view class="muted">跳格子 · 配对 · 三消 · 答题 · 实验台</view>
+      <view class="muted">跳格子 · 配对 · 答题</view>
       <view class="small muted">{{gameHint}}</view>
     </button>
   </view>

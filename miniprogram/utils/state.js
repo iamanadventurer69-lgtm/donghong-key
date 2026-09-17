@@ -44,17 +44,13 @@ const GRADES = [
     color: '#e85d26',
     comment: '完美通关！把关严、答题准、手速快，你是东鸿文化探索的超级玩家。',
     test: (s) =>
-      s.trust >= 85 &&
-      s.games.flip.done &&
-      s.games.flip.moves <= 20 &&
-      s.games.quiz.score >= 80 &&
-      s.games.crush.score >= 300
+      s.trust >= 85 && s.games.flip.done && s.games.flip.moves <= 20 && s.games.quiz.score >= 80
   },
   {
     code: 'A',
     color: '#0fb8a7',
     comment: '非常棒！全部任务完成，判断稳、节奏好，可以带新同事走一遍了。',
-    test: (s) => s.trust >= 70 && s.games.quiz.score >= 60 && s.games.crush.score >= 150
+    test: (s) => s.trust >= 70 && s.games.quiz.score >= 60
   },
   {
     code: 'B',
@@ -85,7 +81,6 @@ function initial() {
     checkins: emptyCheckins(),
     games: {
       flip: { done: false, moves: 0, seconds: 0 },
-      crush: { done: false, score: 0 },
       quiz: { done: false, score: 0, results: [] },
       cert: { matched: [] },
       solution: { done: false, picks: [], perfect: false },
@@ -165,18 +160,15 @@ function normalizeGames(raw, legacyMissions) {
   const games = initial().games;
   const source = raw || {};
   const flip = source.flip || {};
-  const crush = source.crush || {};
   const quiz = source.quiz || {};
 
+  // 模块配对（翻牌）
   const moves = Number.isSafeInteger(flip.moves) ? Math.max(0, Math.min(999, flip.moves)) : 0;
   const seconds = Number.isSafeInteger(flip.seconds)
     ? Math.max(0, Math.min(9999, flip.seconds))
     : 0;
   const flipDone = flip.done === true && moves > 0;
   games.flip = { done: flipDone, moves: flipDone ? moves : 0, seconds: flipDone ? seconds : 0 };
-
-  const score = Number.isSafeInteger(crush.score) ? Math.max(0, Math.min(9999, crush.score)) : 0;
-  games.crush = { done: crush.done === true && score > 0, score: crush.done === true ? score : 0 };
 
   const results = Array.isArray(quiz.results)
     ? quiz.results.slice(0, QUIZ_TOTAL).map((item) => item === true)
@@ -339,12 +331,6 @@ function advance(state, event, payload) {
       s.games.flip = { done: true, moves: Math.min(999, moves), seconds: Math.min(9999, seconds) };
       break;
     }
-    case 'crushResult': {
-      const score = Number.isSafeInteger(payload && payload.score) ? payload.score : 0;
-      if (score <= 0) break;
-      s.games.crush = { done: true, score: Math.min(9999, score) };
-      break;
-    }
     case 'quizReset':
       s.games.quiz = { done: false, score: 0, results: [] };
       break;
@@ -446,13 +432,6 @@ function tasks(s) {
       page: '/pages/flip/flip'
     },
     {
-      id: 'crush',
-      icon: '✨',
-      name: '能量三消',
-      done: s.games.crush.done,
-      page: '/pages/crush/crush'
-    },
-    {
       id: 'quiz',
       icon: '📝',
       name: '知识答题',
@@ -522,7 +501,6 @@ function scoreboard(s) {
   return {
     trust: s.trust,
     flip: s.games.flip,
-    crush: s.games.crush,
     quiz: {
       score: s.games.quiz.score,
       correct: s.games.quiz.results.filter(Boolean).length,

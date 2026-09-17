@@ -21,13 +21,6 @@ const GAMES = [
     hint: '把模块与它的职责配成对'
   },
   {
-    id: 'crush',
-    page: '/pages/crush/crush',
-    icon: '✨',
-    name: '能量三消',
-    hint: '60 秒内多消几组，连击翻倍'
-  },
-  {
     id: 'quiz',
     page: '/pages/quiz/quiz',
     icon: '📝',
@@ -45,7 +38,6 @@ function scoreText(id, games) {
         ? `第 ${games.hop.tile} 格`
         : '';
   if (id === 'flip') return games.flip.done ? `${games.flip.moves} 步` : '';
-  if (id === 'crush') return games.crush.done ? `${games.crush.score} 分` : '';
   if (id === 'quiz') return games.quiz.done ? `${games.quiz.score} 分` : '';
   return '';
 }
@@ -76,7 +68,6 @@ Page({
   isDone(id, s) {
     if (id === 'hop') return s.games.hop.done;
     if (id === 'flip') return s.games.flip.done;
-    if (id === 'crush') return s.games.crush.done;
     if (id === 'quiz') return s.games.quiz.done;
     return false;
   },

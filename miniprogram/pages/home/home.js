@@ -13,7 +13,7 @@ function litNodes(s) {
   return Math.min(6, 2 + s.decisions.length);
 }
 
-const GAMES = ['hop', 'flip', 'crush', 'quiz'];
+const GAMES = ['hop', 'flip', 'quiz'];
 
 /** 主按钮文案。 */
 function primaryLabel(s) {

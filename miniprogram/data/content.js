@@ -650,21 +650,6 @@ module.exports = {
     ]
   },
 
-  // 能量三消：六种能源节点，三个连线即消除。
-  match3: {
-    size: 6,
-    seconds: 60,
-    baseScore: 10,
-    tiles: [
-      { id: 'pv', name: '光伏', emoji: '☀️', color: '#f0b429' },
-      { id: 'charger', name: '充电桩', emoji: '🔌', color: '#4da8d5' },
-      { id: 'data', name: '数据中心', emoji: '🖥️', color: '#7a86d1' },
-      { id: 'factory', name: '智慧工厂', emoji: '🏭', color: '#57b99a' },
-      { id: 'building', name: '楼宇', emoji: '🏢', color: '#38a3a5' },
-      { id: 'grid', name: '输配电', emoji: '🗼', color: '#e07a5f' }
-    ]
-  },
-
   // 知识答题：十题共 100 分，每题都有解释。
   quizBank: [
     {

@@ -104,7 +104,6 @@
       <view class="final-scores">
         <view class="final-score"><text class="final-val">{{scoreboard.trust}}</text><text class="final-lbl">客户信任</text></view>
         <view class="final-score"><text class="final-val">{{scoreboard.hop.wrong}}</text><text class="final-lbl">跳格子失误</text></view>
-        <view class="final-score"><text class="final-val">{{scoreboard.crush.score}}</text><text class="final-lbl">三消得分</text></view>
         <view class="final-score"><text class="final-val">{{scoreboard.quiz.score}}</text><text class="final-lbl">答题分数</text></view>
       </view>
       <view class="final-detail">

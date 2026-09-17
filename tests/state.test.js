@@ -307,7 +307,6 @@ test('小游戏成绩：配对、三消、答题各自记分，答题可以重�
   let s = started();
   assert.deepEqual(s.games, {
     flip: { done: false, moves: 0, seconds: 0 },
-    crush: { done: false, score: 0 },
     quiz: { done: false, score: 0, results: [] },
     cert: { matched: [] },
     solution: { done: false, picks: [], perfect: false },
@@ -316,11 +315,6 @@ test('小游戏成绩：配对、三消、答题各自记分，答题可以重�
 
   s = advance(s, 'flipResult', { moves: 14, seconds: 75 });
   assert.deepEqual(s.games.flip, { done: true, moves: 14, seconds: 75 });
-
-  s = advance(s, 'crushResult', { score: 420 });
-  assert.deepEqual(s.games.crush, { done: true, score: 420 });
-  s = advance(s, 'crushResult', { score: 0 });
-  assert.equal(s.games.crush.score, 420, '0 分不覆盖已有成绩');
 
   // 答题：必须按顺序提交，乱序被忽略
   s = advance(s, 'quizAnswer', { index: 1, choice: 0 });
@@ -348,13 +342,11 @@ test('伪造的小游戏成绩会被清洗', () => {
     version: 4,
     games: {
       flip: { done: true, moves: 99999, seconds: -5 },
-      crush: { done: true, score: -20 },
       quiz: { done: true, results: [true, true] }
     }
   });
   assert.equal(fake.games.flip.moves, 999);
   assert.equal(fake.games.flip.seconds, 0);
-  assert.equal(fake.games.crush.score, 0);
   assert.equal(fake.games.quiz.done, false, '答题记录不完整就不算完成');
   assert.equal(fake.games.quiz.score, 20, '分数按已记录的题重算（2 / 10 题）');
 });
@@ -367,7 +359,7 @@ test('任务清单、进度与全部通关判定', () => {
   assert.equal(state.allDone(s), false);
   assert.equal(state.taskProgress(s).done < state.taskProgress(s).total, true);
   assert.equal(
-    state.tasks(s).some((task) => task.id === 'crush' && !task.done),
+    state.tasks(s).some((task) => task.id === 'quiz' && !task.done),
     true
   );
 
@@ -376,7 +368,6 @@ test('任务清单、进度与全部通关判定', () => {
   for (const quest of content.quests)
     s = advance(s, 'checkin', { questId: quest.id, choice: quest.answer });
   s = advance(s, 'flipResult', { moves: 16, seconds: 60 });
-  s = advance(s, 'crushResult', { score: 320 });
   content.quizBank.forEach((question, index) => {
     s = advance(s, 'quizAnswer', { index, choice: question.ans });
   });
@@ -396,7 +387,7 @@ test('任务清单、进度与全部通关判定', () => {
   assert.equal(board.trust, 85);
   assert.equal(board.quiz.score, 100);
   assert.equal(board.flip.moves, 16);
-  assert.equal(board.grade.code, 'S', '信任 85 + 答题满分 + 三消 320 + 配对 16 步');
+  assert.equal(board.grade.code, 'S', '信任 85 + 答题满分 + 配对 16 步');
 
   // 全部通关后存档仍然可以安全序列化回来
   assert.deepEqual(normalize(JSON.parse(JSON.stringify(s))), s);
@@ -407,7 +398,6 @@ test('通关评级按成绩分档', () => {
     const s = normalize({ version: 4 });
     s.games = {
       flip: { done: true, moves: 24, seconds: 90 },
-      crush: { done: true, score: 180 },
       quiz: { done: true, score: 70, results: content.quizBank.map(() => true) }
     };
     s.trust = 75;
@@ -417,14 +407,12 @@ test('通关评级按成绩分档', () => {
 
   const weak = base();
   weak.trust = 40;
-  weak.games.crush.score = 60;
   weak.games.quiz.score = 30;
   assert.equal(state.grade(weak).code, 'B');
 
   const perfect = base();
   perfect.trust = 90;
   perfect.games.flip.moves = 12;
-  perfect.games.crush.score = 500;
   perfect.games.quiz.score = 90;
   assert.equal(state.grade(perfect).code, 'S');
   assert.ok(state.grade(perfect).comment.length > 0);

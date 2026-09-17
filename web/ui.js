@@ -7,11 +7,9 @@ window.DHKApp = window.DHKApp || {};
 (function (App) {
   const content = DHK.module('data/content');
   const state = DHK.module('utils/state');
-  const match3 = DHK.module('utils/match3');
 
   App.content = content;
   App.state = state;
-  App.match3 = match3;
   App.views = {};
   App.meta = {};
 

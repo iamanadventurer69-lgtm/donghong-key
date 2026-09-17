@@ -81,7 +81,7 @@
     const learn = App.learnProgress(s);
     const learnDone = App.learnDone(s);
     const testDone = App.testDone(s);
-    const games = ['hop', 'flip', 'crush', 'quiz'].filter((id) =>
+    const games = ['hop', 'flip', 'quiz'].filter((id) =>
       id === 'hop' ? s.games.hop.done : s.games[id].done
     ).length;
     return {
@@ -271,7 +271,6 @@
         flip: s.games.flip.done
           ? `${s.games.flip.moves} 步 / ${s.games.flip.seconds} 秒`
           : '未完成',
-        crush: s.games.crush.done ? `${s.games.crush.score} 分` : '未完成',
         quiz: s.games.quiz.done
           ? `${s.games.quiz.score} 分`
           : s.games.quiz.results.length
@@ -322,7 +321,6 @@
               <div class="label">各局成绩</div>
               <div class="row small"><span>文化跳格子</span><span>${scores.hop}</span></div>
               <div class="row small"><span>模块配对</span><span>${scores.flip}</span></div>
-              <div class="row small"><span>能量三消</span><span>${scores.crush}</span></div>
               <div class="row small"><span>知识答题</span><span>${scores.quiz}</span></div>
               <div class="row small"><span>客户信任</span><span>${s.trust} / 100</span></div>
             </div>

@@ -3,7 +3,6 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 const c = require('../miniprogram/data/content');
 const state = require('../miniprogram/utils/state');
-const match3 = require('../miniprogram/utils/match3');
 
 function setup() {
   const db = {};
@@ -78,7 +77,6 @@ function finishEverything(store) {
   for (const quest of c.quests)
     store.dispatch('checkin', { questId: quest.id, choice: quest.answer });
   store.dispatch('flipResult', { moves: 16, seconds: 60 });
-  store.dispatch('crushResult', { score: 320 });
   for (let step = 0; step < c.hopGame.tiles.length; step += 1) {
     const tile = store.read().games.hop.tile;
     store.dispatch('hopAnswer', { index: tile, choice: c.hopGame.tiles[tile].answer });
@@ -369,50 +367,6 @@ test('模块配对：逐步翻开八对，通关后写入成绩', () => {
   flip.tap({ currentTarget: { dataset: { index: 0 } } });
   assert.equal(flip.data.moves, 0);
   flip.onUnload(); // 收掉计时器，别让测试进程挂着
-});
-
-test('能量三消：换不出连线会抖动，消掉连线会得分，时间到写档', async () => {
-  const { store } = setup();
-  const crush = page('crush');
-  crush.onShow();
-  crush.onUnload();
-
-  const raw = () => crush.data.board.map((row) => row.cells.map((cell) => cell.tile));
-  const findSwap = (want) => {
-    const board = raw();
-    for (let row = 0; row < board.length; row += 1) {
-      for (let col = 0; col < board.length; col += 1) {
-        for (const [dr, dc] of [
-          [0, 1],
-          [1, 0]
-        ]) {
-          const to = { row: row + dr, col: col + dc };
-          if (to.row >= board.length || to.col >= board.length) continue;
-          const matched = match3.findMatches(match3.swapTiles(board, { row, col }, to)).length > 0;
-          if (matched === want) return [{ row, col }, to];
-        }
-      }
-    }
-    return null;
-  };
-
-  const bad = findSwap(false);
-  crush.tap(tapCell(bad[0].row, bad[0].col));
-  crush.tap(tapCell(bad[1].row, bad[1].col));
-  assert.equal(crush.data.score, 0);
-  assert.equal(crush.data.shake, true);
-  crush.setData({ shake: false });
-
-  const good = findSwap(true);
-  crush.tap(tapCell(good[0].row, good[0].col));
-  crush.tap(tapCell(good[1].row, good[1].col));
-  for (let i = 0; i < 25 && crush.data.resolving; i += 1) await sleep(120);
-  assert.equal(crush.data.resolving, false);
-  assert.ok(crush.data.score > 0, '消掉连线应当得分');
-  crush.end();
-  assert.equal(crush.data.over, true);
-  assert.equal(typeof store.read().games.crush.score, 'number');
-  crush.onUnload();
 });
 
 test('知识答题：十题答完给总分与逐题回顾，可以重新挑战', () => {

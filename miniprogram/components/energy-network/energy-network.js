@@ -15,6 +15,16 @@ function labelFont(width, height) {
   return Math.max(9, Math.min(15, Math.round(Math.min(width * 0.028, height * 0.11))));
 }
 
+/** 中间电表的半径：画布矮的时候要跟着小，否则会把上半圈的标签挤到没法放。 */
+function coreRadius(width, height) {
+  return Math.max(16, Math.min(30, Math.round(Math.min(width, height) * 0.15)));
+}
+
+/** 节点圆点半径。 */
+function nodeRadius(width, height) {
+  return Math.max(3, Math.min(5, Math.round(Math.min(width, height) * 0.017)));
+}
+
 const NODES = [
   { x: 0.17, y: 0.25, label: '光伏' },
   { x: 0.5, y: 0.15, label: '充电桩' },
@@ -156,14 +166,15 @@ Component({
 
       c.fillStyle = lit ? LIT : DIM;
       c.beginPath();
-      c.arc(x, y, 5, 0, Math.PI * 2);
+      const dot = nodeRadius(w, h);
+      c.arc(x, y, dot, 0, Math.PI * 2);
       c.fill();
 
       if (lit) {
         const pulse = (Math.sin(phase * 3 + index) + 1) / 2;
         c.strokeStyle = 'rgba(41,168,229,' + (0.15 + pulse * 0.4) + ')';
         c.beginPath();
-        c.arc(x, y, 8 + pulse * 9, 0, Math.PI * 2);
+        c.arc(x, y, dot * 1.7 + pulse * dot * 1.9, 0, Math.PI * 2);
         c.stroke();
 
         // 两个光点沿折线匀速前进：先横后竖，用曼哈顿长度换算进度。
@@ -193,10 +204,13 @@ Component({
       const maxX = Math.max(minX, w - half - 6);
       const minY = size / 2 + 4;
       const maxY = Math.max(minY, h - size / 2 - 4);
+      // 朝外画：上半圈的标签放节点上方，否则会顶到中间的 DH 电表；下半圈放下面。
+      const gap = size * 0.9 + 7;
+      const outward = y < cy ? y - gap : y + gap;
       c.fillText(
         node.label,
         Math.min(Math.max(x, minX), maxX),
-        Math.min(Math.max(y + 20, minY), maxY)
+        Math.min(Math.max(outward, minY), maxY)
       );
     },
     /** 中心电表：外扩的光环 + 白底圆 + DH 字样。 */
@@ -211,20 +225,20 @@ Component({
       c.strokeStyle = 'rgba(59,175,232,' + (1 - halo) * 0.4 + ')';
       c.lineWidth = 1;
       c.beginPath();
-      c.arc(cx, cy, 33 + halo * 23, 0, Math.PI * 2);
+      const radius = coreRadius(w, h);
+      c.arc(cx, cy, radius * 1.1 + halo * radius * 0.8, 0, Math.PI * 2);
       c.stroke();
 
       c.fillStyle = '#ffffff';
       c.strokeStyle = '#3bafe8';
       c.lineWidth = 1.5;
       c.beginPath();
-      c.arc(cx, cy, 30, 0, Math.PI * 2);
+      c.arc(cx, cy, radius, 0, Math.PI * 2);
       c.fill();
       c.stroke();
 
       c.fillStyle = '#238fca';
-      c.font =
-        'bold ' + Math.max(12, Math.min(22, Math.round(Math.min(w, h) * 0.05))) + 'px monospace';
+      c.font = 'bold ' + Math.max(11, Math.min(20, Math.round(radius * 0.65))) + 'px monospace';
       c.textAlign = 'center';
       c.fillText('DH', cx, cy + 6);
     }

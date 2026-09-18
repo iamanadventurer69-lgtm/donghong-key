@@ -22,6 +22,16 @@
     return Math.max(9, Math.min(15, Math.round(Math.min(width * 0.028, height * 0.11))));
   }
 
+  /** 中间电表的半径：画布矮的时候要跟着小，否则会把上半圈的标签挤到没法放。 */
+  function coreRadius(width, height) {
+    return Math.max(16, Math.min(30, Math.round(Math.min(width, height) * 0.15)));
+  }
+
+  /** 节点圆点半径。 */
+  function nodeRadius(width, height) {
+    return Math.max(3, Math.min(5, Math.round(Math.min(width, height) * 0.017)));
+  }
+
   App.network = function network(canvas, getActive) {
     const ctx = canvas.getContext('2d');
     let width = 0;
@@ -72,15 +82,16 @@
       ctx.stroke();
 
       ctx.fillStyle = lit ? LIT : DIM;
+      const dot = nodeRadius(width, height);
       ctx.beginPath();
-      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.arc(x, y, dot, 0, Math.PI * 2);
       ctx.fill();
 
       if (lit) {
         const pulse = (Math.sin(phase * 3 + index) + 1) / 2;
         ctx.strokeStyle = 'rgba(41,168,229,' + (0.15 + pulse * 0.4) + ')';
         ctx.beginPath();
-        ctx.arc(x, y, 8 + pulse * 9, 0, Math.PI * 2);
+        ctx.arc(x, y, dot * 1.7 + pulse * dot * 1.9, 0, Math.PI * 2);
         ctx.stroke();
 
         const dx = x - cx;
@@ -110,10 +121,13 @@
       const maxX = Math.max(minX, width - half - 6);
       const minY = size / 2 + 4;
       const maxY = Math.max(minY, height - size / 2 - 4);
+      // 朝外画：上半圈的节点把标签放上面，否则会顶到中间的 DH 电表；下半圈放下面。
+      const gap = size * 0.9 + 7;
+      const outward = y < cy ? y - gap : y + gap;
       ctx.fillText(
         node.label,
         Math.min(Math.max(x, minX), maxX),
-        Math.min(Math.max(y + 20, minY), maxY)
+        Math.min(Math.max(outward, minY), maxY)
       );
     }
 
@@ -121,22 +135,23 @@
       const cx = width * CENTER.x;
       const cy = height * CENTER.y;
       const halo = (phase * 0.45) % 1;
+      const radius = coreRadius(width, height);
 
       ctx.strokeStyle = 'rgba(59,175,232,' + (1 - halo) * 0.4 + ')';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.arc(cx, cy, 33 + halo * 23, 0, Math.PI * 2);
+      ctx.arc(cx, cy, radius * 1.1 + halo * radius * 0.8, 0, Math.PI * 2);
       ctx.stroke();
 
       ctx.fillStyle = '#ffffff';
       ctx.strokeStyle = '#3bafe8';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      const coreSize = Math.max(12, Math.min(22, Math.round(Math.min(width, height) * 0.05)));
+      const coreSize = Math.max(11, Math.min(20, Math.round(radius * 0.65)));
       ctx.fillStyle = '#238fca';
       ctx.font = `bold ${coreSize}px monospace`;
       ctx.textAlign = 'center';

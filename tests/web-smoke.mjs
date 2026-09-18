@@ -101,28 +101,43 @@ const entries = await page.evaluate(() =>
 check('首页三个入口（按顺序）', entries.length === 3, entries.join(' / '));
 check('测试与小游戏初始未解锁', entries[1].includes('未解锁') && entries[2].includes('未解锁'));
 
-/* 0.1 首页能源网络：标签必须完整落在画布内（不能被边缘切掉半个字） */
+/* 0.1 首页能源网络：标签必须完整落在画布内，且不能被中间的 DH 电表压住 */
 const canvasLabels = await page.evaluate(() => {
   const sizes = [
     [1216, 300],
     [680, 200],
+    [414, 300],
     [340, 150],
     [300, 120],
     [200, 90]
   ];
-  const original = CanvasRenderingContext2D.prototype.fillText;
-  const boxes = [];
-  CanvasRenderingContext2D.prototype.fillText = function (text, x, y) {
+  const proto = CanvasRenderingContext2D.prototype;
+  const originalText = proto.fillText;
+  const originalArc = proto.arc;
+  const originalFill = proto.fill;
+  let lastArc = null;
+  let texts = [];
+  let filled = [];
+  proto.arc = function (x, y, r) {
+    lastArc = { x, y, r };
+    return originalArc.apply(this, arguments);
+  };
+  proto.fill = function () {
+    if (lastArc) filled.push(lastArc);
+    return originalFill.apply(this, arguments);
+  };
+  proto.fillText = function (text, x, y) {
     const matched = /([\d.]+)px/.exec(this.font || '');
-    boxes.push({
+    texts.push({
       text,
       x,
       y,
-      font: matched ? parseFloat(matched[1]) : 10,
+      size: matched ? parseFloat(matched[1]) : 10,
       width: this.measureText(text).width
     });
-    return original.apply(this, arguments);
+    return originalText.apply(this, arguments);
   };
+
   const report = sizes.map(([w, h]) => {
     const canvas = document.createElement('canvas');
     canvas.style.width = w + 'px';
@@ -130,23 +145,61 @@ const canvasLabels = await page.evaluate(() => {
     canvas.width = w;
     canvas.height = h;
     document.body.appendChild(canvas);
-    boxes.length = 0;
+    texts = [];
+    filled = [];
+    lastArc = null;
     const net = window.DHKApp.network(canvas, () => 6);
     if (net && net.stop) net.stop();
-    const outside = boxes
-      .filter((box) => {
-        const left = box.x - box.width / 2;
-        const right = box.x + box.width / 2;
-        const top = box.y - box.font / 2;
-        const bottom = box.y + box.font / 2;
-        return left < -0.5 || right > w + 0.5 || top < -0.5 || bottom > h + 0.5;
+
+    // 中心电表 = 圆心在画布中心、半径最大的实心圆
+    const core = filled
+      .filter((arc) => Math.abs(arc.x - w * 0.5) < 2 && Math.abs(arc.y - h * 0.48) < 2 && arc.r > 8)
+      .sort((a, b) => b.r - a.r)[0];
+
+    const box = (text) => ({
+      left: text.x - text.width / 2,
+      right: text.x + text.width / 2,
+      top: text.y - text.size / 2,
+      bottom: text.y + text.size / 2
+    });
+
+    const outside = texts
+      .filter((text) => {
+        const b = box(text);
+        return b.left < -0.5 || b.right > w + 0.5 || b.top < -0.5 || b.bottom > h + 0.5;
       })
-      .map((box) => box.text);
-    const fonts = [...new Set(boxes.map((box) => Math.round(box.font)))].sort((a, b) => a - b);
+      .map((text) => text.text);
+
+    const covered = core
+      ? texts
+          .filter((text) => {
+            if (text.text === 'DH') return false; // 电表里的 DH 本来就在圆里
+            const b = box(text);
+            const nx = Math.min(Math.max(core.x, b.left), b.right);
+            const ny = Math.min(Math.max(core.y, b.top), b.bottom);
+            return Math.hypot(nx - core.x, ny - core.y) < core.r;
+          })
+          .map((text) => text.text)
+      : ['(没找到中心圆)'];
+
+    // 只看节点标签的字号（中间的 DH 会随电表放大到 11~20px，不参与这条断言）
+    const fonts = [
+      ...new Set(texts.filter((text) => text.text !== 'DH').map((text) => Math.round(text.size)))
+    ].sort((a, b) => a - b);
     canvas.remove();
-    return { size: `${w}×${h}`, count: boxes.length, fonts, outside };
+    return {
+      size: `${w}×${h}`,
+      count: texts.length,
+      fonts,
+      outside,
+      covered,
+      coreRadius: core ? Math.round(core.r) : 0
+    };
   });
-  CanvasRenderingContext2D.prototype.fillText = original;
+
+  proto.arc = originalArc;
+  proto.fill = originalFill;
+  proto.fillText = originalText;
   return report;
 });
 check(
@@ -155,12 +208,18 @@ check(
   JSON.stringify(canvasLabels.filter((item) => item.outside.length))
 );
 check(
+  '能源网络标签不被中间的 DH 电表压住',
+  canvasLabels.every((item) => item.covered.length === 0),
+  JSON.stringify(canvasLabels.filter((item) => item.covered.length))
+);
+check(
   '能源网络标签字号随画布缩放（9~15px）',
   canvasLabels.every(
     (item) => item.count >= 6 && item.fonts.every((size) => size >= 9 && size <= 15)
   ),
   JSON.stringify(canvasLabels.map((item) => item.fonts))
 );
+
 check(
   '首页有 hero 区块并铺满宽度',
   await page.evaluate(() => {

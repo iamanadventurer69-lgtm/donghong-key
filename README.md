@@ -9,6 +9,7 @@
 | 运行环境 | 微信开发者工具 / 微信客户端 | 任意现代浏览器，可直接部署到静态托管 |
 | 规则与文案 | `data/content.js`、`utils/state.js` | **同一份代码**（构建时打包进 `web/bundle.js`） |
 | 存档 | 微信 Storage | 浏览器 localStorage（同一个键、同一套清洗规则） |
+| 使用统计 | — | 匿名里程碑（开始 / 学完 / 小游戏 / 测试 / 通关）上报到自己账号的 Cloudflare Worker + D1，看板上看人数、完成人数与完成率；代码在 `stats/` |
 | 重新开始 | 首页右上角「文化探索员」旁边的红色「重新开始」按钮，弹窗二次确认 | 同上，按钮在首页右上角；点两次确认（6 秒内有效，不用浏览器弹窗） |
 | 页面 | 14 个 WXML 页面 | 15 条 hash 路由：`#/home`、`#/prologue`、`#/learn`（学习向导）、`#/test/...`（画像测试四步）、`#/games` 与三个小游戏、`#/final`、`#/progress` |
 | 样式 | 各页 WXSS | 由 WXSS 转译生成 `web/styles.css`，按 `.page-xxx` 作用域隔离；转译时统一把字号放大一档（最小 13px，见 `tools/build-web.mjs` 的 `webFontSize`），手机上也不会显得小 |

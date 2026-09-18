@@ -173,3 +173,12 @@
   - 顺序很关键：先算 `answeredNow` 再清状态，会留下 `quizAt = -1` 去索引题目 → `BANK[-1].q` 直接报错（这个坑在本次修改中出现并被捕获）。
 - 顺带核对：跳格子 / 值班 / 认证配对 / 方案组卡在进入时都有复位（`App.prevHash` 判定），只有答题页漏了；小程序版 `onShow` 每次 `load(true)` 复位，本来就没问题。
 - **测试**：端到端新增 3 项断言（答题前无高亮无解释、点完才高亮并给解释、离开再进是干净的下一题），合计 **286 项**。
+
+## 使用统计：人数 / 完成人数 / 完成率（2026-09-18）
+
+- **服务**：Cloudflare Worker + D1，部署在用户自己账号下（`https://donghong-stats.baixin0023.workers.dev`），不接第三方统计。代码在 `stats/`（`worker.js` / `schema.sql` / `wrangler.toml` / `README.md`）。
+- **接口**：`POST /hit`（`{device, event}`，事件白名单 `start`/`learn`/`test`/`games`/`finish`）、`GET /stats?key=…`（JSON 汇总）、`GET /`（手写看板：人数、完成人数、完成率、漏斗、最近 14 天）、`GET /health`。
+- **表结构**：`devices(device PRIMARY KEY, first_at, last_at, hits, start, learn, test, games, finish, finish_at)`；里程碑用 `MAX(...)` 幂等叠加，重复上报不会把数字算大；单设备封顶 500 次防脚本空转。
+- **前端埋点**（`web/analytics.js` + `web/app.js` 每次渲染后 `DHKTrack.sync(存档)`）：随机设备号存 localStorage，五个里程碑各只发一次；发送失败写本地队列、下次打开补发；请求用 `text/plain`（简单请求，避免 CORS 预检，`sendBeacon` 也发得出去——用 `application/json` 时 beacon 会被浏览器直接丢掉，实测 `net::ERR_FAILED`）；`localhost` / `file://` 默认不上报（`?track=1` 才发），并尊重 Do Not Track 与 `localStorage['dhk.track.off']`。
+- **隐私**：只有匿名随机设备号 + 里程碑，无姓名 / 手机 / IP。
+- **实测**：本地用真实浏览器跑完整流程（序章 → 学习 → 六个小游戏 → 测试 → 通关），五个事件全部到达；重复同步不再重复发送；localhost 默认静默。线上数据在联调后已清空。

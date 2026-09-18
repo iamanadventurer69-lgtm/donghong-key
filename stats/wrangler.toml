@@ -1,0 +1,10 @@
+# 东鸿密钥 · 使用统计（Cloudflare Worker + D1）
+# 部署：npx wrangler deploy（或按 README 用 API 部署）
+name = "donghong-stats"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "donghong-stats"
+database_id = "e0f135e0-c851-4ad7-8f9c-ff9f0f5e055f"

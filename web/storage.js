@@ -46,5 +46,5 @@
     return warningText;
   }
 
-  window.DHKStore = { read, write, dispatch, reset, warning, KEY };
+  window.DHKStore = { read, write, dispatch, reset, warning, KEY, state };
 })();

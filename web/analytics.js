@@ -17,11 +17,18 @@
   const OPT_OUT_KEY = 'dhk.track.off';
   const EVENTS = ['start', 'learn', 'test', 'games', 'finish'];
 
-  /** 本地文件调试（file:// 或 localhost）默认不发，加 ?track=1 才发，免得测试把线上数字打乱。 */
+  /**
+   * 什么时候不发：
+   *   1. 自己在本机设了 dhk.track.off = '1'（少数情况下想彻底关掉）；
+   *   2. 本地调试（file:// 或 localhost）——免得开发和测试把线上数字打乱，加 ?track=1 才发。
+   *
+   * 这里**故意不看 Do Not Track**：早期浏览器真会按它做事，现在主流浏览器早已忽略这个信号
+   * （Chrome/Edge 从 2022 起不再实现），继续尊重它只会变成「开着 DNT 就静默不上报」的暗坑——
+   * 本次就是被它坑了一次。我们本来就不采集姓名/手机/IP，属于自家站点的第一方计数。
+   */
   function optedOut() {
     try {
       if (localStorage.getItem(OPT_OUT_KEY) === '1') return true;
-      if (navigator.doNotTrack === '1') return true;
       const local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
       const forced = new URLSearchParams(location.search).get('track') === '1';
       return local && !forced;
@@ -167,7 +174,22 @@
     }
   }
 
-  window.DHKTrack = { send, sync, flush, deviceId, endpoint: ENDPOINT };
+  /** 一行看清状态，排查"为什么没有数据"用：DHKTrack.status() */
+  function status() {
+    const state = window.DHKStore ? window.DHKStore.read() : null;
+    return {
+      endpoint: ENDPOINT,
+      host: location.hostname,
+      optedOut: optedOut(),
+      device: deviceId() || '(生成失败)',
+      sent: readJSON(SENT_KEY, {}),
+      queued: readJSON(QUEUE_KEY, {}),
+      prologueDone: Boolean(state && state.prologueDone),
+      finish: Boolean(state && window.DHKStore.state && window.DHKStore.state.allDone(state))
+    };
+  }
+
+  window.DHKTrack = { send, sync, flush, status, deviceId, endpoint: ENDPOINT };
 
   // 打开页面、重新联网时补发之前没发成功的
   window.addEventListener('online', () => flush());

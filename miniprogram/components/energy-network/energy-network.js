@@ -10,6 +10,11 @@ const GRID_STEP = 24;
 const CENTER = { x: 0.5, y: 0.48 };
 
 /** 六个场景节点：相对坐标 + 名称，顺序即点亮顺序。 */
+/** 标签字号跟着画布尺寸走：画布小的时候字也小一点，别撑满、也别被边缘切掉。 */
+function labelFont(width, height) {
+  return Math.max(9, Math.min(15, Math.round(Math.min(width * 0.028, height * 0.11))));
+}
+
 const NODES = [
   { x: 0.17, y: 0.25, label: '光伏' },
   { x: 0.5, y: 0.15, label: '充电桩' },
@@ -177,10 +182,22 @@ Component({
         }
       }
 
-      c.font = '10px sans-serif';
+      // 标签：字号随画布缩放，并夹在画布内（原来固定 10px、固定 +23px 偏移，画布一矮就被切）
+      const size = labelFont(w, h);
+      c.font = '600 ' + size + 'px sans-serif';
       c.textAlign = 'center';
       c.fillStyle = lit ? '#24668e' : '#6f93a9';
-      c.fillText(node.label, x, y + 23);
+      c.textBaseline = 'middle';
+      const half = c.measureText(node.label).width / 2;
+      const minX = half + 6;
+      const maxX = Math.max(minX, w - half - 6);
+      const minY = size / 2 + 4;
+      const maxY = Math.max(minY, h - size / 2 - 4);
+      c.fillText(
+        node.label,
+        Math.min(Math.max(x, minX), maxX),
+        Math.min(Math.max(y + 20, minY), maxY)
+      );
     },
     /** 中心电表：外扩的光环 + 白底圆 + DH 字样。 */
     drawCore() {
@@ -206,7 +223,8 @@ Component({
       c.stroke();
 
       c.fillStyle = '#238fca';
-      c.font = 'bold 16px monospace';
+      c.font =
+        'bold ' + Math.max(12, Math.min(22, Math.round(Math.min(w, h) * 0.05))) + 'px monospace';
       c.textAlign = 'center';
       c.fillText('DH', cx, cy + 6);
     }

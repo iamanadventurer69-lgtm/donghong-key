@@ -100,6 +100,67 @@ const entries = await page.evaluate(() =>
 );
 check('首页三个入口（按顺序）', entries.length === 3, entries.join(' / '));
 check('测试与小游戏初始未解锁', entries[1].includes('未解锁') && entries[2].includes('未解锁'));
+
+/* 0.1 首页能源网络：标签必须完整落在画布内（不能被边缘切掉半个字） */
+const canvasLabels = await page.evaluate(() => {
+  const sizes = [
+    [1216, 300],
+    [680, 200],
+    [340, 150],
+    [300, 120],
+    [200, 90]
+  ];
+  const original = CanvasRenderingContext2D.prototype.fillText;
+  const boxes = [];
+  CanvasRenderingContext2D.prototype.fillText = function (text, x, y) {
+    const matched = /([\d.]+)px/.exec(this.font || '');
+    boxes.push({
+      text,
+      x,
+      y,
+      font: matched ? parseFloat(matched[1]) : 10,
+      width: this.measureText(text).width
+    });
+    return original.apply(this, arguments);
+  };
+  const report = sizes.map(([w, h]) => {
+    const canvas = document.createElement('canvas');
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    canvas.width = w;
+    canvas.height = h;
+    document.body.appendChild(canvas);
+    boxes.length = 0;
+    const net = window.DHKApp.network(canvas, () => 6);
+    if (net && net.stop) net.stop();
+    const outside = boxes
+      .filter((box) => {
+        const left = box.x - box.width / 2;
+        const right = box.x + box.width / 2;
+        const top = box.y - box.font / 2;
+        const bottom = box.y + box.font / 2;
+        return left < -0.5 || right > w + 0.5 || top < -0.5 || bottom > h + 0.5;
+      })
+      .map((box) => box.text);
+    const fonts = [...new Set(boxes.map((box) => Math.round(box.font)))].sort((a, b) => a - b);
+    canvas.remove();
+    return { size: `${w}×${h}`, count: boxes.length, fonts, outside };
+  });
+  CanvasRenderingContext2D.prototype.fillText = original;
+  return report;
+});
+check(
+  '能源网络标签完整落在画布内',
+  canvasLabels.every((item) => item.outside.length === 0),
+  JSON.stringify(canvasLabels.filter((item) => item.outside.length))
+);
+check(
+  '能源网络标签字号随画布缩放（9~15px）',
+  canvasLabels.every(
+    (item) => item.count >= 6 && item.fonts.every((size) => size >= 9 && size <= 15)
+  ),
+  JSON.stringify(canvasLabels.map((item) => item.fonts))
+);
 check(
   '首页有 hero 区块并铺满宽度',
   await page.evaluate(() => {

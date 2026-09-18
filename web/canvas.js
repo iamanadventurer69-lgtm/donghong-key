@@ -17,6 +17,11 @@
     { x: 0.83, y: 0.72, label: '输配电' }
   ];
 
+  /** 标签字号跟着画布尺寸走：画布小的时候字也小一点，别撑满、也别被边缘切掉。 */
+  function labelFont(width, height) {
+    return Math.max(9, Math.min(15, Math.round(Math.min(width * 0.028, height * 0.11))));
+  }
+
   App.network = function network(canvas, getActive) {
     const ctx = canvas.getContext('2d');
     let width = 0;
@@ -93,10 +98,23 @@
         }
       }
 
-      ctx.font = '10px sans-serif';
+      // 标签：字号随画布缩放，并夹在画布内——原来固定 10px、固定 +23px 偏移，
+      // 画布一矮（手机/窄栏）就会被上下边缘切掉半个字。
+      const size = labelFont(width, height);
+      ctx.font = `600 ${size}px sans-serif`;
       ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
       ctx.fillStyle = lit ? '#24668e' : '#6f93a9';
-      ctx.fillText(node.label, x, y + 23);
+      const half = ctx.measureText(node.label).width / 2;
+      const minX = half + 6;
+      const maxX = Math.max(minX, width - half - 6);
+      const minY = size / 2 + 4;
+      const maxY = Math.max(minY, height - size / 2 - 4);
+      ctx.fillText(
+        node.label,
+        Math.min(Math.max(x, minX), maxX),
+        Math.min(Math.max(y + 20, minY), maxY)
+      );
     }
 
     function drawCore() {
@@ -118,10 +136,12 @@
       ctx.fill();
       ctx.stroke();
 
+      const coreSize = Math.max(12, Math.min(22, Math.round(Math.min(width, height) * 0.05)));
       ctx.fillStyle = '#238fca';
-      ctx.font = 'bold 16px monospace';
+      ctx.font = `bold ${coreSize}px monospace`;
       ctx.textAlign = 'center';
-      ctx.fillText('DH', cx, cy + 6);
+      ctx.textBaseline = 'middle';
+      ctx.fillText('DH', cx, cy);
     }
 
     function draw() {

@@ -182,3 +182,15 @@
 - **前端埋点**（`web/analytics.js` + `web/app.js` 每次渲染后 `DHKTrack.sync(存档)`）：随机设备号存 localStorage，五个里程碑各只发一次；发送失败写本地队列、下次打开补发；请求用 `text/plain`（简单请求，避免 CORS 预检，`sendBeacon` 也发得出去——用 `application/json` 时 beacon 会被浏览器直接丢掉，实测 `net::ERR_FAILED`）；`localhost` / `file://` 默认不上报（`?track=1` 才发），并尊重 Do Not Track 与 `localStorage['dhk.track.off']`。
 - **隐私**：只有匿名随机设备号 + 里程碑，无姓名 / 手机 / IP。
 - **实测**：本地用真实浏览器跑完整流程（序章 → 学习 → 六个小游戏 → 测试 → 通关），五个事件全部到达；重复同步不再重复发送；localhost 默认静默。线上数据在联调后已清空。
+
+## 统计漏报修复：不再把 sendBeacon 的「收下」当「送达」（2026-09-18）
+
+- **现象**：用户完整走完 12 项任务（`state.tasks()` 全为 true），看板却只记到 `start`。
+- **根因**：`web/analytics.js` 的发送通道以 `sendBeacon` 优先，只要浏览器**收下**就返回 true，代码据此把事件从本地队列删掉；而 beacon 在网络层失败是**静默**的（实测 `net::ERR_FAILED`），于是 learn/test/games/finish 全被吞掉。
+- **修法**：
+  1. **fetch 优先**（只有 2xx 才算送达），`sendBeacon` 仅在 `pagehide` / 切后台时兜一把，且**一律按未确认处理**，事件留在队列里；
+  2. 发送成功后**先写「已送达」标记、再出队**——最坏是重复送一次（服务端幂等），不会丢；
+  3. 队列非空时每 20 秒重试（最多 15 次），并在 `online` / `visibilitychange` / 下次打开时补发；
+  4. **一次性自愈** `repairOnce()`：早期版本把「收下」当「送过」，这次把所有标记过的事件重新排队发一遍，重复送达因服务端 `MAX()` 幂等不影响数字；
+  5. `DHKTrack.status()` 增加 `repaired` 字段，便于排查。
+- **验证**：确定性测试（手动塞 5 条队列）→ 5/5 送达、标记齐全、队列清空；自愈测试（预置「已发但队列为空」）→ 5 条全部重发成功并写入 `repaired` 标记；本地端到端 286 项断言全绿。

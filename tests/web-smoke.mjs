@@ -313,12 +313,13 @@ check('学习完成页提示开始测试', (await text()).includes('开始文化
 const afterLearn = await save();
 check('四个展区都已打卡', Object.values(afterLearn.checkins).every(Boolean));
 
-/* 3. 文化画像测试：值班（六份材料，一份一屏） */
+/* 3. 文化画像测试：值班（一份一屏） */
 await tap('[data-action="to-test"]');
 await wait(250);
 check('进入测试第一步', (await hash()) === '#/test/shift', await hash());
 check('测试页有步骤条', (await text()).includes('第 1 / 4 步'));
-for (let i = 0; i < 6; i += 1) {
+const shiftTotal = await page.evaluate(() => window.DHKApp.state.CARDS.length);
+for (let i = 0; i < shiftTotal; i += 1) {
   const choiceId = await page.evaluate((index) => {
     const card = window.DHKApp.state.currentCard(window.DHKStore.read());
     const back = card.choices.find((choice) => choice.stamp === 'return');
@@ -329,8 +330,8 @@ for (let i = 0; i < 6; i += 1) {
   await tap(`[data-action="choose"][data-id="${choiceId}"]`);
   await wait(160);
   check(`第 ${i + 1} 份材料有后果页`, (await text()).includes('客户信任'));
-  // 后果页 2.6 秒后自动进入下一份：第六份结束后直接进认证配对
-  if (i < 5) {
+  // 后果页 2.6 秒后自动进入下一份：最后一份结束后直接进认证配对
+  if (i < shiftTotal - 1) {
     check(
       `第 ${i + 1} 份材料能翻到下一份`,
       await page.evaluate(() => Boolean(document.querySelector('[data-action="next"]')))
@@ -342,11 +343,11 @@ for (let i = 0; i < 6; i += 1) {
     );
   } else {
     await wait(2900);
-    check('第六份材料自动进入认证配对', (await hash()) === '#/test/cert', await hash());
+    check('最后一份材料自动进入认证配对', (await hash()) === '#/test/cert', await hash());
   }
 }
 check('值班结束进入认证配对', (await hash()) === '#/test/cert', await hash());
-check('值班六份都判过了', (await save()).decisions.length === 6);
+check('值班材料都判过了', (await save()).decisions.length === shiftTotal);
 
 /* 4. 认证配对 */
 const certPairs = await page.evaluate(() =>
@@ -405,7 +406,7 @@ check(
   })
 );
 check('有明确的蓄力按钮', (await text()).includes('按住蓄力 · 松手选中'));
-/** 按住 ms 毫秒后松手，指针停在对应选项上（指针每 360ms 扫过一项）。 */
+/** 按住 ms 毫秒后松手，指针停在对应选项上（指针每 540ms 扫过一项）。 */
 const hopPress = async (ms) => {
   const box = await page.locator('#hop-dock').boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -421,13 +422,13 @@ for (let step = 0; step < hopAnswers.length; step += 1) {
   const tile = (await save()).games.hop.tile;
   const wrong = (hopAnswers[tile] + 1) % 4;
   // 先故意选错：应停在原格并提示重选
-  await hopPress(360 * wrong + 50);
+  await hopPress(540 * wrong + 60);
   check(`第 ${tile + 1} 格选错停在原格`, (await save()).games.hop.tile === tile);
   check('选错后提示重新选', (await text()).includes('重新选一次'));
   await tap('[data-action="retry"]');
   await wait(160);
   // 再选对：前进一格
-  await hopPress(360 * hopAnswers[tile] + 50);
+  await hopPress(540 * hopAnswers[tile] + 60);
   check(`第 ${tile + 1} 格选对前进一格`, (await save()).games.hop.tile === tile + 1);
   check('选对后没有「下一格」按钮', (await page.locator('[data-action="go"]').count()) === 0);
   await wait(1400); // 等它自己进入下一格

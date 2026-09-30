@@ -170,7 +170,7 @@
         <div class="sheet">
           <div class="win-title">✅ 企业文化学习完成</div>
           <div class="win-text">你已经看过四个模块：文化坐标、产品模块、价值观、走向世界，并把每个模块的一组题都答对了（共 15 道）。</div>
-          <div class="intro">接下来是「文化画像测试」：用刚学到的内容做判断——先当一天质量值班员，为六份材料决定通过还是退回，再完成认证配对与方案组卡。你的判断会生成一份专属文化画像。</div>
+          <div class="intro">接下来是「文化画像测试」：用刚学到的内容做判断——先当一天质量值班员，为五份材料决定通过还是退回，再完成认证配对与方案组卡。你的判断会生成一份专属文化画像。</div>
           <div class="small muted">${testDone ? '测试已经完成过了，可以再看一次画像。' : '测试包含 3 个环节，大约 3–5 分钟。'}</div>
           <button class="primary" data-action="to-test">开始文化画像测试 →</button>
           <button class="secondary" data-action="review">回看学习内容</button>

@@ -903,15 +903,17 @@ button > div {
   transform: translateY(2px) scaleY(0.98);
 }
 
+/* 指针（选择框）：半透明 + 描边，且压在文字下面，选项文字始终看得清 */
 .hop-pointer {
   position: absolute;
   left: 8px;
   right: 8px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #3b3a5c, #55567f);
-  box-shadow: 0 8px 18px #3b3a5c44;
+  background: rgba(59, 58, 92, 0.14);
+  border: 2px solid rgba(59, 58, 92, 0.55);
+  box-shadow: 0 6px 14px rgba(59, 58, 92, 0.12);
   pointer-events: none;
-  z-index: 1;
+  z-index: 0;
 }
 
 .hop-row {

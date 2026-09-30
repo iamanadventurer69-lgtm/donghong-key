@@ -1,7 +1,7 @@
 /**
  * 文化画像测试：学习完成后的三个判断环节，一步一屏。
  *
- *   ① 质量值班：六份材料，一份一屏，判断通过 / 退回（信任值与印记实时变化）
+ *   ① 质量值班：五份材料，一份一屏，判断通过 / 退回（信任值与印记实时变化）
  *   ② 认证配对：把三张认证卡配到对应市场
  *   ③ 方案组卡：预算三张卡，缺必需项会被客户打回
  *   ④ 画像结算：信任值分档 + 四项印记 + 关键行为 + 行动承诺
@@ -163,7 +163,7 @@
             const action = hit.dataset.action;
             if (action === 'choose') return decide(hit.dataset.id);
             if (action === 'next') {
-              // 一份材料的后果看完，继续下一份；六份都判完才进下一环节
+              // 一份材料的后果看完，继续下一份；都判完才进下一环节
               shiftResult = null;
               if (state.shiftDone(store().read())) return App.go('#/test/cert');
               return App.render();
@@ -417,15 +417,22 @@
           <div class="label">最高印记 · ${portrait.top || '尚无'}</div>
           <div class="quote">${esc(portrait.style.title)}</div>
         </div>
-        <div class="card highlights">
-          <div class="label">你的关键行为</div>
-          ${portrait.highlights
-            .map(
-              (item) =>
-                `<div class="highlight"><span class="highlight-title">${esc(item.card)}</span><span class="highlight-choice">${esc(item.choice)}</span></div>`
-            )
-            .join('')}
-        </div>
+        ${
+          portrait.highlights.length
+            ? `<div class="card highlights">
+                 <div class="label">你的关键行为</div>
+                 ${portrait.highlights
+                   .map(
+                     (item) =>
+                       `<div class="highlight"><span class="highlight-title">${esc(item.card)}</span><span class="highlight-choice">${esc(item.choice)}</span></div>`
+                   )
+                   .join('')}
+               </div>`
+            : `<div class="card">
+                 <div class="label">你的关键行为</div>
+                 <div class="small muted">这一轮还没有做出关键判断，回看一次值班就能看到。</div>
+               </div>`
+        }
         <div class="card">
           <div class="label">选一项行动承诺</div>
           ${content.actions

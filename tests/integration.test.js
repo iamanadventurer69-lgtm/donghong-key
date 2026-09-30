@@ -96,7 +96,7 @@ const passPrologue = (store) => {
   for (const event of ['prologue', 'prologue', 'mission']) store.dispatch(event);
 };
 
-test('值班闭环：六份材料盖章 → 文化画像 → 行动承诺', () => {
+test('值班闭环：五份材料盖章 → 文化画像 → 行动承诺', () => {
   const { store, routes } = setup();
   const intro = page('prologue');
   intro.onShow();
@@ -129,7 +129,7 @@ test('值班闭环：六份材料盖章 → 文化画像 → 行动承诺', () =
     assert.equal(shift.data.phase, 'result');
     shift.next();
   }
-  assert.equal(store.read().decisions.length, 6);
+  assert.equal(store.read().decisions.length, state.CARDS.length);
   assert.equal(routes.at(-1), '/pages/culture/culture');
 
   const culture = page('culture');
@@ -217,7 +217,7 @@ test('三选一的卡片只用按钮，滑动不会误盖', () => {
   shift.swipeEnd({ changedTouches: [{ clientX: 100, clientY: 300 }] });
   assert.equal(store.read().decisions.length, 5);
   shift.choose(ev('max'));
-  assert.equal(store.read().decisions.length, 6);
+  assert.equal(store.read().decisions.length, state.CARDS.length);
 });
 
 test('深链进入值班页或画像页时前置条件不足会重定向', () => {
@@ -319,13 +319,13 @@ test('闯关中心：全部完成后自动弹出通关结算，并给出评级�
   assert.equal(quest.data.moduleDone, true, '企业文化模块应当已完成');
   assert.equal(quest.data.allDone, true);
   assert.equal(quest.data.finalOpen, true, '全部通关时自动弹结算');
-  assert.equal(quest.data.grade.code, 'S');
+  assert.equal(quest.data.grade.code, 'A');
   assert.deepEqual(quest.data.progress, {
     done: quest.data.progress.total,
     total: quest.data.progress.total
   });
   assert.equal(quest.data.scoreboard.quiz.score, 100);
-  assert.equal(quest.data.scoreboard.trust, 85);
+  assert.equal(quest.data.scoreboard.trust, 79);
 
   quest.closeFinal();
   assert.equal(quest.data.finalOpen, false);

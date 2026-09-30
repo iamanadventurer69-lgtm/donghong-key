@@ -42,12 +42,12 @@ function chapterSteps() {
   ];
 }
 
-/** 好路径：拦下超阈值批次、重装模块、补高温工况、拒绝先发、交付方法、方案对口。 */
-const GOOD = ['return', 'refit', 'extra', 'refuse', 'standard', 'fit'];
-/** 坏路径：一路"先发再说"。 */
-const BAD = ['release', 'observe', 'process', 'allow', 'blame', 'max'];
+/** 好路径：拦下超阈值批次、重装模块、拒绝「待定」、交付方法、方案对口。 */
+const GOOD = ['return', 'refit', 'refuse', 'standard', 'fit'];
+/** 坏路径：一路「先发再说」。 */
+const BAD = ['release', 'observe', 'allow', 'routine', 'max'];
 
-test('完整路径：序章、六份材料盖章、二三章、行动承诺后达到 100%', () => {
+test('完整路径：序章、五份材料盖章、二三章、行动承诺后达到 100%', () => {
   let s = play(GOOD);
   assert.equal(s.decisions.length, CARDS.length);
   assert.equal(currentCard(s), null);
@@ -90,9 +90,10 @@ test('前置条件：没说使命不能值班，没盖完不能承诺，同一�
 test('信任值与印记由决定重算，且信任值有上下限', () => {
   const good = play(GOOD);
   const bad = play(BAD);
-  assert.equal(good.trust, 85);
-  assert.equal(bad.trust, 0); // 一路放行会把信任打到下限
-  assert.deepEqual(good.marks, { 守正: 3, 务实: 3, 创新: 3, 精进: 8 });
+  assert.equal(good.trust, 79);
+  assert.equal(bad.trust, 13); // 一路放行信任掉到很低（但不会低于 0）
+  assert.ok(bad.trust < good.trust);
+  assert.deepEqual(good.marks, { 守正: 3, 务实: 3, 创新: 2, 精进: 6 });
   assert.equal(good.marks.守正 - bad.marks.守正 > 0, true);
 
   // 存档里写死数值也没用：读出来一定被决定重算覆盖。
@@ -101,7 +102,7 @@ test('信任值与印记由决定重算，且信任值有上下限', () => {
   assert.equal(forged.marks.守正, 0);
 });
 
-test('延迟后果：第一张放行后，第五张变成客户投诉变体', () => {
+test('延迟后果：第一张放行后，客户回访那张变成投诉变体', () => {
   const riskyPath = play(['release', 'observe', 'process', 'allow']);
   assert.equal(riskyPath.flags.shipRisky, true);
   const complaint = currentCard(riskyPath);
@@ -111,17 +112,18 @@ test('延迟后果：第一张放行后，第五张变成客户投诉变体', ()
 
   const safePath = play(['return', 'refit', 'extra', 'refuse']);
   assert.equal(safePath.flags.shipRisky, undefined);
-  const fifth = currentCard(safePath);
-  assert.equal(fifth.id, 'callback');
-  assert.equal(fifth.title, '上次被你们拦下的那批');
-  assert.equal(fifth.variant, undefined);
+  const callback = currentCard(safePath);
+  assert.equal(callback.id, 'callback');
+  assert.equal(callback.title, '上次被你们拦下的那批');
+  assert.equal(callback.variant, undefined);
 
   // 变体只影响当次展示，原始数据不被改写
-  assert.equal(content.shifts[0].cards[4].title, '上次被你们拦下的那批');
-  assert.equal(content.shifts[0].cards[4].variant.when, 'shipRisky');
+  const callbackCard = content.shifts[0].cards.find((card) => card.id === 'callback');
+  assert.equal(callbackCard.title, '上次被你们拦下的那批');
+  assert.equal(callbackCard.variant.when, 'shipRisky');
   assert.deepEqual(
     content.shifts[0].cards.map((card) => card.id),
-    ['rush', 'assembly', 'manual', 'pending', 'callback', 'project']
+    ['rush', 'assembly', 'pending', 'callback', 'project']
   );
 });
 
@@ -156,7 +158,7 @@ test('伪造的决定会被截断在第一个对不上的地方', () => {
     decisions: [
       { cardId: 'rush', choiceId: 'return' },
       { cardId: 'assembly', choiceId: 'not-a-choice' },
-      { cardId: 'manual', choiceId: 'extra' }
+      { cardId: 'pending', choiceId: 'refuse' }
     ]
   });
   assert.deepEqual(s.decisions, [{ cardId: 'rush', choiceId: 'return' }]);
@@ -264,8 +266,8 @@ test('旧存档（v4）的章节进度会迁移成小游戏记录', () => {
 
 test('结算画像给出分档、主印记与关键行为', () => {
   const good = portrait(play(GOOD));
-  assert.equal(good.trust, 85);
-  assert.equal(good.level.label, '可靠的在岗人');
+  assert.equal(good.trust, 79);
+  assert.equal(good.level.label, '称职的值班员');
   assert.equal(good.top, '精进');
   assert.equal(good.style.title, '持续验证者');
   assert.equal(good.highlights.length, 3);
@@ -384,10 +386,10 @@ test('任务清单、进度与全部通关判定', () => {
   });
 
   const board = state.scoreboard(s);
-  assert.equal(board.trust, 85);
+  assert.equal(board.trust, 79);
   assert.equal(board.quiz.score, 100);
   assert.equal(board.flip.moves, 16);
-  assert.equal(board.grade.code, 'S', '信任 85 + 答题满分 + 配对 16 步');
+  assert.equal(board.grade.code, 'A', '信任 79 + 答题满分 + 配对 16 步');
 
   // 全部通关后存档仍然可以安全序列化回来
   assert.deepEqual(normalize(JSON.parse(JSON.stringify(s))), s);

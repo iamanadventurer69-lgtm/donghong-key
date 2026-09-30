@@ -111,8 +111,8 @@
   /* ==================== 文化跳格子：跳一跳式场景 + 按压蓄力选答案 ==================== */
   const HOP = content.hopGame;
   const HOP_TOTAL = HOP.tiles.length;
-  /** 指针扫过一项所需时间（毫秒）：按住越久走得越远。 */
-  const HOP_STEP_MS = 360;
+  /** 指针扫过一项所需时间（毫秒）：按住越久走得越远。放慢一点，让人来得及反应。 */
+  const HOP_STEP_MS = 540;
   /**
    * 等距场景：viewBox 直接用容器的像素尺寸（1:1 映射），平台大小与间距按宽度换算，
    * 当前平台永远放在容器中央稍偏下——这样窄屏手机也不会把棋子挤出可视区。
@@ -141,7 +141,7 @@
   let hopLastTile = -1; // 上一帧站着的格子，用来算出「从哪跳过来」
   let hopCharge = 0; // 本次按压的蓄力值 0~1（最长按 900ms 算满）
   let hopAnim = ''; // '' 静止 / 'jump' 起跳落地 / 'bump' 没跳过去的抖动
-  const HOP_CHARGE_MS = 1600; // 蓄力更慢：蹲到位要 1.6 秒
+  const HOP_CHARGE_MS = 2200; // 蓄力更慢：蹲到位要 2.2 秒（和放慢后的指针节奏对齐）
 
   /** 第 index 格相对当前格 tile 的场景坐标（当前格永远在同一个位置）。 */
   function hopCenter(index, tile, layout) {

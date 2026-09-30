@@ -708,6 +708,41 @@ check(
   JSON.stringify(layout.流程各列)
 );
 check('桌面无横向溢出', layout.横向溢出 <= 0, JSON.stringify(layout));
+
+/* 10.1 桌面「认证配对」：左右两列卡片要一行一行对齐 */
+await desktop.evaluate(() => {
+  const s = window.DHKStore.read();
+  s.prologueDone = true;
+  s.checkins = { culture: true, modules: true, values: true, world: true };
+  window.DHKStore.write(s);
+  for (let i = 0; i < 8; i += 1) {
+    const card = window.DHKApp.state.currentCard(window.DHKStore.read());
+    if (!card) break;
+    window.DHKStore.dispatch('choose', { cardId: card.id, choiceId: card.choices[0].id });
+  }
+  location.hash = '#/test/cert';
+});
+await desktop.waitForTimeout(400);
+const certAlign = await desktop.evaluate(() => {
+  const boxes = (selector) =>
+    [...document.querySelectorAll(selector)].map((node) => {
+      const rect = node.getBoundingClientRect();
+      return { top: Math.round(rect.y), height: Math.round(rect.height) };
+    });
+  return { markets: boxes('.market'), certs: boxes('.cert') };
+});
+check(
+  '桌面认证配对左右两列第一行对齐',
+  certAlign.markets.length === 3 &&
+    certAlign.certs.length === 3 &&
+    Math.abs(certAlign.markets[0].top - certAlign.certs[0].top) <= 1,
+  JSON.stringify(certAlign)
+);
+check(
+  '桌面认证配对左右卡片等高',
+  certAlign.markets[0].height === certAlign.certs[0].height,
+  JSON.stringify([certAlign.markets[0], certAlign.certs[0]])
+);
 await desktop.close();
 
 /* 10.5 随便进一屏，点顶部「首页」都能回去 */

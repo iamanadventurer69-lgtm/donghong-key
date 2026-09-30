@@ -234,13 +234,16 @@ body {
   .page-cert {
     display: grid;
     grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    /* 简介横跨两列：这样左右两列的第一张卡片从同一高度开始，
+       右边的认证卡不会再被"居中"到半空里 */
     grid-template-areas:
       'head     head'
-      'npc      certs'
+      'npc      npc'
       'markets  certs'
       'feedback certs';
     gap: 14px 22px;
     align-content: start;
+    align-items: start;
   }
   .page-cert .step-head {
     grid-area: head;
@@ -254,7 +257,16 @@ body {
   .page-cert .certs {
     grid-area: certs;
     grid-template-columns: 1fr;
-    align-content: center;
+    align-content: start;
+    gap: 12px;
+  }
+  .page-cert .markets {
+    gap: 12px;
+  }
+  /* 左右卡片等高，一行一行对得整齐 */
+  .page-cert .market,
+  .page-cert .cert {
+    min-height: 78px;
   }
   .page-cert .feedback,
   .page-cert .hint {
